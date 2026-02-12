@@ -29,11 +29,11 @@
     },
     {
       "src": "/login\\.html",
-      "dest": "/public/login.html"
+      "dest": "/api/index.js"
     },
     {
       "src": "/ReBillion_Onboarding_Flow\\.html",
-      "dest": "/public/ReBillion_Onboarding_Flow.html"
+      "dest": "/api/index.js"
     },
     {
       "src": "/(.*)",
