@@ -194,6 +194,11 @@ const loginLimiter = rateLimit({
 // ══════════════════════════════════════════════════════════════
 function requireLogin(req, res, next) {
   if (!req.session || !req.session.userId) {
+    // For browser HTML requests, redirect to login page instead of returning JSON
+    const acceptsHTML = req.headers.accept && req.headers.accept.includes('text/html');
+    if (acceptsHTML && !req.path.startsWith('/api/')) {
+      return res.redirect('/login.html');
+    }
     return res.status(401).json({ message: 'Not authenticated' });
   }
   next();
@@ -546,6 +551,48 @@ app.put('/api/clients/:clientId/steps/:stepId/note', requireLogin, async (req, r
     res.json(result);
   } catch (e) {
     safeError(res, 500, 'Failed to save note');
+  }
+});
+
+// Add link to step
+app.post('/api/clients/:clientId/steps/:stepId/links', requireLogin, async (req, res) => {
+  try {
+    const client = await db.getClient(req.params.clientId);
+    if (!client) return res.status(404).json({ message: 'Client not found' });
+    const { url, label } = req.body;
+    if (!url || typeof url !== 'string' || url.length > 2000) {
+      return res.status(400).json({ message: 'Valid URL is required (max 2000 chars)' });
+    }
+    if (label && label.length > 200) {
+      return res.status(400).json({ message: 'Label must be under 200 characters' });
+    }
+    const link = await db.addStepLink(req.params.clientId, req.params.stepId, {
+      url: url.trim(),
+      label: (label || '').trim(),
+      addedBy: req.session.userId
+    });
+    await db.createActivity({
+      clientId: req.params.clientId,
+      userId: req.session.userId,
+      action: `attached link to "${req.params.stepId}"`,
+      details: (label || url).substring(0, 80)
+    });
+    res.json(link);
+  } catch (e) {
+    console.error('Add link error:', e);
+    safeError(res, 500, 'Failed to add link');
+  }
+});
+
+// Remove link from step
+app.delete('/api/clients/:clientId/steps/:stepId/links/:linkId', requireLogin, async (req, res) => {
+  try {
+    const client = await db.getClient(req.params.clientId);
+    if (!client) return res.status(404).json({ message: 'Client not found' });
+    await db.removeStepLink(req.params.clientId, req.params.stepId, req.params.linkId);
+    res.json({ success: true });
+  } catch (e) {
+    safeError(res, 500, 'Failed to remove link');
   }
 });
 

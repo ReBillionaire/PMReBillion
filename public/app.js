@@ -203,7 +203,7 @@ let state = {
   clients: [], team: [], activities: [],
   currentUser: null, // { id, name, role, email, color }
   currentView: 'dashboard', detailClientId: null,
-  editingClientId: null, noteTarget: null,
+  editingClientId: null, noteTarget: null, linkTarget: null,
   previousView: 'dashboard', searchTerm: '',
   isOffline: false
 };
@@ -223,9 +223,18 @@ function showToast(msg, type='info') {
 function ensureSteps(client) {
   if (!client.steps) client.steps = {};
   ALL_CHECKPOINTS.forEach(cp => {
-    if (!client.steps[cp.id]) client.steps[cp.id] = { status:'pending', note:'', completedDate:null, completedBy:null };
+    if (!client.steps[cp.id]) client.steps[cp.id] = { status:'pending', note:'', links:[], completedDate:null, completedBy:null };
+    if (!client.steps[cp.id].links) client.steps[cp.id].links = [];
   });
   return client;
+}
+function hasBlockedSteps(client) {
+  ensureSteps(client);
+  return ALL_CHECKPOINTS.some(cp => (client.steps[cp.id] || {}).status === 'blocked');
+}
+function blockedStepCount(client) {
+  ensureSteps(client);
+  return ALL_CHECKPOINTS.filter(cp => (client.steps[cp.id] || {}).status === 'blocked').length;
 }
 function clientProgress(client) {
   const c = ensureSteps(client);
@@ -307,6 +316,8 @@ async function replayQueue(queue) {
         case 'delete_client': await api.del(`/api/clients/${action.data.id}`); break;
         case 'update_step': await api.put(`/api/clients/${action.data.clientId}/steps/${action.data.stepId}`, action.data); break;
         case 'save_note': await api.put(`/api/clients/${action.data.clientId}/steps/${action.data.stepId}/note`, action.data); break;
+        case 'add_link': await api.post(`/api/clients/${action.data.clientId}/steps/${action.data.stepId}/links`, { url: action.data.url, label: action.data.label }); break;
+        case 'remove_link': await api.del(`/api/clients/${action.data.clientId}/steps/${action.data.stepId}/links/${action.data.linkId}`); break;
         case 'create_team': await api.post('/api/team', action.data); break;
         case 'delete_team': await api.del(`/api/team/${action.data.id}`); break;
       }
@@ -447,13 +458,17 @@ function renderDashboard() {
     return `<div class="activity-item"><div class="activity-dot" style="background:${esc(userColor(a.user_id))}"></div><div><div class="activity-text"><strong>${esc(userName(a.user_id))}</strong> ${esc(a.action)}${clName ? ' \u2014 <em>'+clName+'</em>' : ''}</div><div class="activity-time">${fmtDateTime(a.timestamp)}</div></div></div>`;
   }).join('');
 
+  const blockedCount = all.filter(c => c.status!=='completed' && hasBlockedSteps(c)).length;
+
   let clientRows = all.filter(c => c.status!=='completed').slice(0, 8).map(c => {
     const prog = clientProgress(c);
     const phase = clientCurrentPhase(c);
     const pColor = PHASES.find(p => p.id===phase)?.color || '#999';
     const pLabel = PHASES.find(p => p.id===phase)?.name || '';
     const od = isOverdue(c.targetGoLive) && c.status !== 'completed';
-    return `<tr onclick="openClientDetail('${esc(c.id)}')"><td><strong>${esc(c.company)}</strong>${od ? '<span class="overdue-tag">OVERDUE</span>' : ''}</td><td><span class="status status-${esc(c.status)}">${esc(c.status.replace('_',' '))}</span></td><td style="color:${pColor};font-weight:600;font-size:12px">${esc(pLabel)}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:4px;background:#e0e0e0;border-radius:2px;overflow:hidden"><div style="height:100%;width:${prog.pct}%;background:${pColor};border-radius:2px"></div></div><span style="font-size:11px;font-weight:600;color:${pColor}">${prog.pct}%</span></div></td></tr>`;
+    const blocked = hasBlockedSteps(c);
+    const bCount = blockedStepCount(c);
+    return `<tr onclick="openClientDetail('${esc(c.id)}')" ${blocked?'style="background:#fff3e0;border-left:3px solid #e65100"':''}><td><strong>${esc(c.company)}</strong>${od ? '<span class="overdue-tag">OVERDUE</span>' : ''}${blocked ? '<span style="background:#e65100;color:#fff;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:700;margin-left:6px;vertical-align:middle">'+bCount+' BLOCKED</span>' : ''}</td><td><span class="status status-${esc(c.status)}">${esc(c.status.replace('_',' '))}</span></td><td style="color:${pColor};font-weight:600;font-size:12px">${esc(pLabel)}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:4px;background:#e0e0e0;border-radius:2px;overflow:hidden"><div style="height:100%;width:${prog.pct}%;background:${pColor};border-radius:2px"></div></div><span style="font-size:11px;font-weight:600;color:${pColor}">${prog.pct}%</span></div></td></tr>`;
   }).join('');
 
   return `
@@ -463,6 +478,7 @@ function renderDashboard() {
       <div class="stat-card red"><div class="stat-label">Overdue</div><div class="stat-value">${overdue}</div><div class="stat-sub">Past go-live date</div></div>
       <div class="stat-card green"><div class="stat-label">Completed</div><div class="stat-value">${completed}</div><div class="stat-sub">Successfully onboarded</div></div>
       <div class="stat-card teal"><div class="stat-label">In Pipeline</div><div class="stat-value">${p1+p2+p3}</div><div class="stat-sub">P1: ${p1} \u00b7 P2: ${p2} \u00b7 P3: ${p3}</div></div>
+      ${blockedCount > 0 ? '<div class="stat-card" style="border-color:#e65100"><div class="stat-label" style="color:#e65100">Blocked</div><div class="stat-value" style="color:#e65100">'+blockedCount+'</div><div class="stat-sub">Have blocked tasks</div></div>' : ''}
     </div>
     <div class="two-col">
       <div class="card"><div class="card-header"><h3>Active Clients</h3><button class="btn btn-sm btn-outline" onclick="switchView('clients')">View All</button></div><div class="card-body" style="padding:0"><div class="table-wrap">${clientRows ? '<table class="table"><thead><tr><th>Client</th><th>Status</th><th>Phase</th><th>Progress</th></tr></thead><tbody>'+clientRows+'</tbody></table>' : '<div class="empty-state" style="padding:40px"><p>No active clients yet. Click "New Client" to get started.</p></div>'}</div></div></div>
@@ -555,17 +571,25 @@ function renderDetail() {
       return cp || { ...item, type: item.isGate ? 'gate' : 'step', phaseColor: phase.color };
     });
     return items.map(item => {
-      const st = c.steps[item.id] || { status:'pending', note:'' };
+      const st = c.steps[item.id] || { status:'pending', note:'', links:[] };
+      const links = st.links || [];
       const isGate = item.type==='gate';
       const badgeBg = isGate ? 'var(--amber)' : (item.isNew ? 'var(--purple)' : phase.color);
       const label = isGate ? item.id.toUpperCase() : item.id.replace(/p\ds/,'');
       const completedInfo = st.completedDate ? ' ('+fmtDate(st.completedDate)+(st.completedBy?' by '+esc(userName(st.completedBy)):'')+')' : '';
+      const linksHtml = links.length ? '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">' + links.map(l =>
+        '<span style="display:inline-flex;align-items:center;gap:4px;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:2px 8px;font-size:11px">' +
+        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>' +
+        '<a href="'+esc(l.url)+'" target="_blank" rel="noopener" style="color:#1565c0;text-decoration:none;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="event.stopPropagation()" title="'+esc(l.url)+'">'+esc(l.label || l.url)+'</a>' +
+        '<button onclick="event.stopPropagation();removeLink(\''+esc(c.id)+'\',\''+esc(item.id)+'\',\''+esc(l.id)+'\')" style="background:none;border:none;cursor:pointer;color:#c62828;font-size:12px;padding:0;line-height:1" title="Remove link">\u00d7</button></span>'
+      ).join('') + '</div>' : '';
       return `<div class="step-item ${esc(st.status)} ${isGate?'gate-item':''}">
         <div class="step-num-badge" style="background:${badgeBg}">${esc(isGate?item.id.toUpperCase():label)}</div>
         <div class="step-info">
           <div class="step-name">${esc(item.name)}${item.isNew?' <span style="background:var(--purple);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700">NEW</span>':''}${st.status==='completed'?'<span style="font-size:10px;color:var(--green);margin-left:6px">'+esc(completedInfo)+'</span>':''}</div>
           <div class="step-desc-text">${esc(item.desc)}</div>
           ${st.note?'<div style="margin-top:4px;padding:6px 8px;background:var(--amber-light);border-radius:6px;font-size:11px;color:#6d4c00"><strong>Note:</strong> '+esc(st.note)+'</div>':''}
+          ${linksHtml}
         </div>
         <div class="step-actions">
           <button class="step-status-btn ${st.status==='pending'?'active-pending':''}" onclick="event.stopPropagation();setStepStatus('${esc(c.id)}','${esc(item.id)}','pending')" title="Pending">\u25cb</button>
@@ -574,6 +598,9 @@ function renderDetail() {
           <button class="step-status-btn ${st.status==='blocked'?'active-blocked':''}" onclick="event.stopPropagation();setStepStatus('${esc(c.id)}','${esc(item.id)}','blocked')" title="Blocked">\u2715</button>
           <button class="step-notes-btn ${st.note?'has-note':''}" onclick="event.stopPropagation();openNoteModal('${esc(c.id)}','${esc(item.id)}')" title="${st.note?'Edit note':'Add note'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="step-notes-btn ${links.length?'has-note':''}" onclick="event.stopPropagation();openLinkModal('${esc(c.id)}','${esc(item.id)}')" title="${links.length?links.length+' link(s)':'Attach link'}" style="${links.length?'color:#1565c0':''}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
           </button>
         </div>
       </div>`;
@@ -679,6 +706,72 @@ async function saveStepNote() {
   } catch(e) {
     await idbCache.queueAction({ type: 'save_note', data: { clientId, stepId, note } });
   }
+}
+
+// ── Link Attachment ──
+function openLinkModal(clientId, stepId) {
+  const c = state.clients.find(cl => cl.id===clientId);
+  if (!c) { showToast('Client not found','warn'); return; }
+  state.linkTarget = { clientId, stepId };
+  const si = ALL_CHECKPOINTS.find(ch => ch.id===stepId);
+  document.getElementById('modal-link-title').textContent = 'Attach Link: '+(si?.name||stepId);
+  document.getElementById('fl-url').value = '';
+  document.getElementById('fl-label').value = '';
+  openModal('modal-link');
+  setTimeout(() => document.getElementById('fl-url').focus(), 100);
+}
+
+async function saveLinkAttachment() {
+  if (!state.linkTarget) return;
+  const { clientId, stepId } = state.linkTarget;
+  const c = state.clients.find(cl => cl.id===clientId);
+  if (!c) { showToast('Client was deleted','warn'); closeModal('modal-link'); return; }
+  const url = document.getElementById('fl-url').value.trim();
+  const label = document.getElementById('fl-label').value.trim();
+  if (!url) { showToast('URL is required','warn'); return; }
+  // Basic URL validation
+  if (!/^https?:\/\/.+/i.test(url) && !url.startsWith('/')) {
+    showToast('Enter a valid URL (http:// or https://)','warn'); return;
+  }
+  closeModal('modal-link');
+  // Optimistic update
+  if (!c.steps[stepId]) c.steps[stepId] = { status:'pending', note:'', links:[], completedDate:null, completedBy:null };
+  if (!c.steps[stepId].links) c.steps[stepId].links = [];
+  const tempLink = { id: uid(), url, label: label || '', addedBy: state.currentUser?.id, addedAt: now() };
+  c.steps[stepId].links.push(tempLink);
+  render();
+  showToast('Link attached','success');
+  try {
+    if (state.isOffline) throw new Error('offline');
+    const serverLink = await api.post(`/api/clients/${clientId}/steps/${stepId}/links`, { url, label });
+    // Replace temp link with server response
+    const idx = c.steps[stepId].links.findIndex(l => l.id === tempLink.id);
+    if (idx >= 0) c.steps[stepId].links[idx] = serverLink;
+    // Refresh activities
+    const actRes = await api.get('/api/activities?limit=20');
+    state.activities = actRes.activities || [];
+    render();
+  } catch(e) {
+    if (!state.isOffline) showToast('Link saved locally, will sync later','warn');
+    await idbCache.queueAction({ type: 'add_link', data: { clientId, stepId, url, label } });
+  }
+  await idbCache.saveState({ clients: state.clients, team: state.team, activities: state.activities, currentUser: state.currentUser });
+}
+
+async function removeLink(clientId, stepId, linkId) {
+  const c = state.clients.find(cl => cl.id===clientId);
+  if (!c) return;
+  if (!c.steps[stepId] || !c.steps[stepId].links) return;
+  c.steps[stepId].links = c.steps[stepId].links.filter(l => l.id !== linkId);
+  render();
+  showToast('Link removed','info');
+  try {
+    if (state.isOffline) throw new Error('offline');
+    await api.del(`/api/clients/${clientId}/steps/${stepId}/links/${linkId}`);
+  } catch(e) {
+    await idbCache.queueAction({ type: 'remove_link', data: { clientId, stepId, linkId } });
+  }
+  await idbCache.saveState({ clients: state.clients, team: state.team, activities: state.activities, currentUser: state.currentUser });
 }
 
 async function deleteClient(id) {

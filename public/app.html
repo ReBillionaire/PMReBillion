@@ -407,6 +407,22 @@ body.offline .main { margin-top: 30px; }
   </div>
 </div>
 
+<!-- Link Attachment Modal -->
+<div class="modal-overlay" id="modal-link">
+  <div class="modal" style="max-width: 480px;" role="dialog" aria-labelledby="modal-link-title">
+    <div class="modal-header"><h3 id="modal-link-title">Attach Link</h3><button class="modal-close" onclick="closeModal('modal-link')" aria-label="Close">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>URL *</label><input id="fl-url" type="url" placeholder="https://docs.google.com/..." maxlength="2000"></div>
+      <div class="form-group"><label>Label (optional)</label><input id="fl-label" placeholder="e.g. Signed contract, Config spreadsheet..." maxlength="200"></div>
+      <p style="font-size:11px;color:var(--muted);margin-top:4px">Attach a link to a file, document, or resource for this task.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-link')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLinkAttachment()">Attach</button>
+    </div>
+  </div>
+</div>
+
 <script src="/app.js"></script>
 </body>
 </html>

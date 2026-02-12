@@ -83,12 +83,20 @@ async function init() {
       step_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       note TEXT DEFAULT '',
+      links TEXT DEFAULT '[]',
       completed_date TEXT,
       completed_by TEXT,
       updated_at TEXT NOT NULL,
       PRIMARY KEY (client_id, step_id)
     )
   `);
+
+  // Migration: add links column if missing (for existing databases)
+  try {
+    await pool.query(`ALTER TABLE client_steps ADD COLUMN IF NOT EXISTS links TEXT DEFAULT '[]'`);
+  } catch (e) {
+    // Column may already exist, ignore
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS activities (
@@ -483,15 +491,18 @@ async function deleteClient(id) {
 // ══════════════════════════════════════════════════════════════
 async function getClientSteps(clientId) {
   const result = await pool.query(
-    'SELECT step_id, status, note, completed_date, completed_by FROM client_steps WHERE client_id = $1',
+    'SELECT step_id, status, note, links, completed_date, completed_by FROM client_steps WHERE client_id = $1',
     [clientId]
   );
 
   const steps = {};
   for (const row of result.rows) {
+    let links = [];
+    try { links = JSON.parse(row.links || '[]'); } catch(e) { links = []; }
     steps[row.step_id] = {
       status: row.status,
       note: row.note || '',
+      links: links,
       completedDate: row.completed_date,
       completedBy: row.completed_by
     };
@@ -507,22 +518,70 @@ async function upsertStep(clientId, stepId, data) {
 
   // Use PostgreSQL INSERT ... ON CONFLICT for upsert
   await pool.query(
-    `INSERT INTO client_steps (client_id, step_id, status, note, completed_date, completed_by, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO client_steps (client_id, step_id, status, note, links, completed_date, completed_by, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT (client_id, step_id)
      DO UPDATE SET
        status = $3,
        note = $4,
-       completed_date = $5,
-       completed_by = $6,
-       updated_at = $7`,
-    [clientId, stepId, data.status, data.note !== undefined ? data.note : '', completedDate, completedBy, ts]
+       completed_date = $6,
+       completed_by = $7,
+       updated_at = $8`,
+    [clientId, stepId, data.status, data.note !== undefined ? data.note : '', '[]', completedDate, completedBy, ts]
   );
 
   // Update client updated_at
   await pool.query('UPDATE clients SET updated_at = $1 WHERE id = $2', [ts, clientId]);
 
-  return { stepId, status: data.status, note: data.note || '', completedDate, completedBy };
+  return { stepId, status: data.status, note: data.note || '', links: [], completedDate, completedBy };
+}
+
+async function addStepLink(clientId, stepId, link) {
+  const ts = now();
+  // Get current links
+  const result = await pool.query(
+    'SELECT links FROM client_steps WHERE client_id = $1 AND step_id = $2',
+    [clientId, stepId]
+  );
+  let links = [];
+  if (result.rows.length > 0) {
+    try { links = JSON.parse(result.rows[0].links || '[]'); } catch(e) { links = []; }
+  }
+  const newLink = { id: uid(), url: link.url, label: link.label || '', addedBy: link.addedBy, addedAt: ts };
+  links.push(newLink);
+
+  if (result.rows.length > 0) {
+    await pool.query(
+      'UPDATE client_steps SET links = $1, updated_at = $2 WHERE client_id = $3 AND step_id = $4',
+      [JSON.stringify(links), ts, clientId, stepId]
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO client_steps (client_id, step_id, status, note, links, completed_date, completed_by, updated_at)
+       VALUES ($1, $2, 'pending', '', $3, NULL, NULL, $4)`,
+      [clientId, stepId, JSON.stringify(links), ts]
+    );
+  }
+
+  await pool.query('UPDATE clients SET updated_at = $1 WHERE id = $2', [ts, clientId]);
+  return newLink;
+}
+
+async function removeStepLink(clientId, stepId, linkId) {
+  const ts = now();
+  const result = await pool.query(
+    'SELECT links FROM client_steps WHERE client_id = $1 AND step_id = $2',
+    [clientId, stepId]
+  );
+  if (!result.rows.length) return false;
+  let links = [];
+  try { links = JSON.parse(result.rows[0].links || '[]'); } catch(e) { links = []; }
+  links = links.filter(l => l.id !== linkId);
+  await pool.query(
+    'UPDATE client_steps SET links = $1, updated_at = $2 WHERE client_id = $3 AND step_id = $4',
+    [JSON.stringify(links), ts, clientId, stepId]
+  );
+  return true;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -724,6 +783,8 @@ module.exports = {
   deleteClient,
   getClientSteps,
   upsertStep,
+  addStepLink,
+  removeStepLink,
   createActivity,
   getActivities,
   clearActivities,
