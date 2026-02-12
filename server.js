@@ -254,9 +254,15 @@ if (googleAuthEnabled) {
 
   app.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/login.html?error=auth_failed' }),
-    (req, res) => {
+    async (req, res) => {
       // Successful authentication, redirect to app
       req.session.userId = req.user.id;
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
       res.redirect('/app.html');
     }
   );
@@ -282,6 +288,13 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
     req.session.userId = user.id;
+    // Explicitly save session before responding (critical for serverless)
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
     res.json({
       success: true,
       user: { id: user.id, name: user.name, role: user.role, email: user.email, color: user.color, type: user.type },
