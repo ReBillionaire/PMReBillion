@@ -114,6 +114,13 @@ async function init() {
     await seedDefaultUsers();
   }
 
+  // Seed example clients if empty
+  const clientResult = await pool.query('SELECT COUNT(*) as c FROM clients');
+  const clientCount = parseInt(clientResult.rows[0].c) || 0;
+  if (clientCount === 0) {
+    await seedExampleClients();
+  }
+
   console.log('Database initialized with PostgreSQL');
   return pool;
 }
@@ -146,6 +153,113 @@ async function seedDefaultUsers() {
       [u.id, u.name, u.role, u.email, hash, u.color, 'member', 1, now()]
     );
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SEED EXAMPLE CLIENTS
+// ══════════════════════════════════════════════════════════════
+async function seedExampleClients() {
+  const ts = now();
+  const examples = [
+    {
+      id: 'c1', company: 'Keller Williams Denver', type: 'Brokerage',
+      contactName: 'Sarah Mitchell', contactEmail: 'sarah@kwdenver.com',
+      scenario: 'single-office', salesLead: 't1', onboardingLead: 't3',
+      txns: 120, targetGoLive: '2026-03-15', notes: 'High priority — CEO wants fast rollout',
+      status: 'active'
+    },
+    {
+      id: 'c2', company: 'RE/MAX Pacific Northwest', type: 'Brokerage',
+      contactName: 'James Chen', contactEmail: 'jchen@remaxpnw.com',
+      scenario: 'multi-office', salesLead: 't2', onboardingLead: 't4',
+      txns: 350, targetGoLive: '2026-04-01', notes: '3 offices across WA and OR',
+      status: 'active'
+    },
+    {
+      id: 'c3', company: 'Lone Star Title Co', type: 'Title',
+      contactName: 'Maria Garcia', contactEmail: 'mgarcia@lonestartitle.com',
+      scenario: 'single-office', salesLead: 't1', onboardingLead: 't3',
+      txns: 80, targetGoLive: '2026-02-28', notes: 'Already using competitor, switching over',
+      status: 'active'
+    },
+    {
+      id: 'c4', company: 'Coldwell Banker Southeast', type: 'Brokerage',
+      contactName: 'Robert Taylor', contactEmail: 'rtaylor@cbsoutheast.com',
+      scenario: 'multi-office', salesLead: 't2', onboardingLead: 't4',
+      txns: 500, targetGoLive: '2026-05-01', notes: 'Enterprise deal — 5 offices in FL and GA',
+      status: 'active'
+    },
+    {
+      id: 'c5', company: 'Summit Escrow Services', type: 'Escrow',
+      contactName: 'Linda Park', contactEmail: 'lpark@summitescrow.com',
+      scenario: 'single-office', salesLead: 't1', onboardingLead: 't3',
+      txns: 45, targetGoLive: '2026-03-01', notes: 'Small but growing firm in AZ',
+      status: 'active'
+    }
+  ];
+
+  for (const c of examples) {
+    await pool.query(
+      `INSERT INTO clients (id, company, type, contact_name, contact_email, scenario, sales_lead_id, onboarding_lead_id, txns, target_go_live, notes, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      [c.id, c.company, c.type, c.contactName, c.contactEmail, c.scenario,
+       c.salesLead, c.onboardingLead, c.txns, c.targetGoLive, c.notes, c.status, ts, ts]
+    );
+  }
+
+  // Add some example steps for the first client to show progress
+  const stepExamples = [
+    { clientId: 'c1', stepId: 'intro_call', status: 'completed', note: 'Great initial call, very engaged' },
+    { clientId: 'c1', stepId: 'needs_assessment', status: 'completed', note: 'Needs MLS integration' },
+    { clientId: 'c1', stepId: 'proposal_sent', status: 'completed', note: 'Sent pricing deck' },
+    { clientId: 'c1', stepId: 'contract_signed', status: 'completed', note: 'Signed 2-year agreement' },
+    { clientId: 'c1', stepId: 'data_collection', status: 'in_progress', note: 'Waiting for agent roster' },
+    { clientId: 'c2', stepId: 'intro_call', status: 'completed', note: '' },
+    { clientId: 'c2', stepId: 'needs_assessment', status: 'completed', note: 'Complex multi-office setup' },
+    { clientId: 'c2', stepId: 'proposal_sent', status: 'in_progress', note: '' },
+    { clientId: 'c3', stepId: 'intro_call', status: 'completed', note: '' },
+    { clientId: 'c3', stepId: 'needs_assessment', status: 'completed', note: '' },
+    { clientId: 'c3', stepId: 'proposal_sent', status: 'completed', note: '' },
+    { clientId: 'c3', stepId: 'contract_signed', status: 'completed', note: '' },
+    { clientId: 'c3', stepId: 'data_collection', status: 'completed', note: '' },
+    { clientId: 'c3', stepId: 'system_config', status: 'in_progress', note: 'Configuring title workflows' },
+    { clientId: 'c4', stepId: 'intro_call', status: 'completed', note: '' },
+    { clientId: 'c4', stepId: 'needs_assessment', status: 'in_progress', note: 'Scheduling office visits' },
+    { clientId: 'c5', stepId: 'intro_call', status: 'completed', note: '' },
+    { clientId: 'c5', stepId: 'needs_assessment', status: 'completed', note: '' },
+    { clientId: 'c5', stepId: 'proposal_sent', status: 'completed', note: '' },
+    { clientId: 'c5', stepId: 'contract_signed', status: 'in_progress', note: 'Legal review in progress' }
+  ];
+
+  for (const s of stepExamples) {
+    const completedDate = s.status === 'completed' ? ts : null;
+    await pool.query(
+      `INSERT INTO client_steps (client_id, step_id, status, note, completed_date, completed_by, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [s.clientId, s.stepId, s.status, s.note, completedDate, 't5', ts]
+    );
+  }
+
+  // Add example activities
+  const activityExamples = [
+    { clientId: 'c1', userId: 't1', action: 'created new client', details: 'Keller Williams Denver' },
+    { clientId: 'c1', userId: 't3', action: 'marked "intro_call" as completed', details: '' },
+    { clientId: 'c1', userId: 't3', action: 'marked "contract_signed" as completed', details: '' },
+    { clientId: 'c2', userId: 't2', action: 'created new client', details: 'RE/MAX Pacific Northwest' },
+    { clientId: 'c3', userId: 't1', action: 'created new client', details: 'Lone Star Title Co' },
+    { clientId: 'c4', userId: 't2', action: 'created new client', details: 'Coldwell Banker Southeast' },
+    { clientId: 'c5', userId: 't1', action: 'created new client', details: 'Summit Escrow Services' },
+    { clientId: 'c3', userId: 't5', action: 'marked "system_config" as in progress', details: '' }
+  ];
+
+  for (const a of activityExamples) {
+    await pool.query(
+      'INSERT INTO activities (id, client_id, user_id, action, details, timestamp) VALUES ($1, $2, $3, $4, $5, $6)',
+      [uid(), a.clientId, a.userId, a.action, a.details, ts]
+    );
+  }
+
+  console.log('Seeded 5 example clients with steps and activities');
 }
 
 // ══════════════════════════════════════════════════════════════

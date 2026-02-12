@@ -100,6 +100,16 @@ app.use(helmet({
   }
 }));
 
+// Disable caching for HTML/JS responses (prevent stale CSP headers)
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.startsWith('/api/') || req.path.startsWith('/auth/')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  next();
+});
+
 // I4: Morgan HTTP access logging
 app.use(morgan('combined'));
 
