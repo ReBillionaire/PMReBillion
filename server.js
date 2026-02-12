@@ -82,12 +82,13 @@ passport.deserializeUser(async (id, done) => {
 // SECURITY MIDDLEWARE
 // ══════════════════════════════════════════════════════════════
 
-// C9: Helmet security headers (allow inline scripts for login/app pages)
+// C9: Helmet security headers (allow inline scripts/event handlers for login/app pages)
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'"],
