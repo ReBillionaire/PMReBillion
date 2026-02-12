@@ -47,15 +47,16 @@ if (googleAuthEnabled) {
         return done(null, existingUser);
       }
 
-      // Check if email is @rebillion.ai domain
-      const isRebillionEmail = email.endsWith('@rebillion.ai');
+      // Check if email is from an internal domain
+      const internalDomains = ['@rebillion.ai', '@garvik.ai', '@simplyclosed.com'];
+      const isInternalEmail = internalDomains.some(d => email.endsWith(d));
 
       // Create new user
       const newUser = await db.findOrCreateGoogleUser({
         email: email,
         name: profile.displayName || email.split('@')[0],
-        type: isRebillionEmail ? 'member' : 'observer',
-        role: isRebillionEmail ? 'team member' : 'observer'
+        type: isInternalEmail ? 'member' : 'observer',
+        role: isInternalEmail ? 'team member' : 'observer'
       });
 
       return done(null, newUser);

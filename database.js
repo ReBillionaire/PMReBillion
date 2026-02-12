@@ -114,6 +114,9 @@ async function init() {
     await seedDefaultUsers();
   }
 
+  // Migration: update default user emails to match Google OAuth accounts
+  await migrateUserEmails();
+
   // Seed example clients if empty
   const clientResult = await pool.query('SELECT COUNT(*) as c FROM clients');
   const clientCount = parseInt(clientResult.rows[0].c) || 0;
@@ -139,11 +142,11 @@ async function flushAndShutdown() {
 // ══════════════════════════════════════════════════════════════
 async function seedDefaultUsers() {
   const defaults = [
-    { id: 't1', name: 'Lisa', role: 'Sales', email: 'lisa@rebillion.ai', color: '#1565c0' },
-    { id: 't2', name: 'Vikas', role: 'Sales', email: 'vikas@rebillion.ai', color: '#1976d2' },
+    { id: 't1', name: 'Lisa', role: 'Sales', email: 'lisa@simplyclosed.com', color: '#1565c0' },
+    { id: 't2', name: 'Vikas', role: 'Sales', email: 'vikas@garvik.ai', color: '#1976d2' },
     { id: 't3', name: 'Julie', role: 'Onboarding / Account Mgr', email: 'julie@rebillion.ai', color: '#00838f' },
-    { id: 't4', name: 'Eddy', role: 'Onboarding / Account Mgr', email: 'eddy@rebillion.ai', color: '#00897b' },
-    { id: 't5', name: 'Atul', role: 'Implementation', email: 'atul@rebillion.ai', color: '#2e7d32' }
+    { id: 't4', name: 'Eddy', role: 'Onboarding / Account Mgr', email: 'eddy@simplyclosed.com', color: '#00897b' },
+    { id: 't5', name: 'Atul', role: 'Implementation', email: 'atul@garvik.ai', color: '#2e7d32' }
   ];
 
   for (const u of defaults) {
@@ -152,6 +155,28 @@ async function seedDefaultUsers() {
       'INSERT INTO users (id, name, role, email, password_hash, color, type, is_default, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
       [u.id, u.name, u.role, u.email, hash, u.color, 'member', 1, now()]
     );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MIGRATION: UPDATE USER EMAILS FOR GOOGLE OAUTH
+// ══════════════════════════════════════════════════════════════
+async function migrateUserEmails() {
+  // Map default user IDs to their real Google-linked email addresses
+  const emailMap = {
+    t1: 'lisa@simplyclosed.com',
+    t2: 'vikas@garvik.ai',
+    // t3 (Julie) stays as julie@rebillion.ai — no Google account configured
+    t4: 'eddy@simplyclosed.com',
+    t5: 'atul@garvik.ai'
+  };
+
+  for (const [userId, newEmail] of Object.entries(emailMap)) {
+    const result = await pool.query('SELECT email FROM users WHERE id = $1', [userId]);
+    if (result.rows.length > 0 && result.rows[0].email !== newEmail) {
+      await pool.query('UPDATE users SET email = $1 WHERE id = $2', [newEmail, userId]);
+      console.log(`Migrated ${userId} email: ${result.rows[0].email} → ${newEmail}`);
+    }
   }
 }
 
