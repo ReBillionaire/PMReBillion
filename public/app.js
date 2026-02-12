@@ -136,7 +136,7 @@ const idbCache = {
 // DATA MODEL & STEP DEFINITIONS
 // ══════════════════════════════════════════════════════════════
 const PHASES = [
-  { id:'phase1', name:'Sales & Discovery', color:'#1565c0', weeks:'0\u20131', team:'Sales',
+  { id:'phase1', name:'Sales & Discovery', color:'#4B876C', weeks:'0\u20131', team:'Sales',
     steps: [
       { id:'p1s1', name:'Lead Qualification', desc:'Qualify: company type, volume, pain points, tech stack, budget. Identify scenario profile.' },
       { id:'p1s2', name:'Discovery Call', desc:'30\u201345 min structured call: workflow, tech landscape, pain points, baselines.' },
@@ -505,7 +505,7 @@ function renderPipeline() {
     return `<div class="pipeline-col"><div class="pipeline-col-header"><div class="phase-dot" style="background:${color}"></div><h4>${esc(name)}</h4><span class="count">${clients.length}</span></div><div class="pipeline-col-body">${cards||'<div class="pipeline-empty">No clients in this phase</div>'}</div></div>`;
   }
   const done = all.filter(c => c.status==='completed');
-  return `<div class="pipeline">${col('phase1','Phase 1: Sales & Discovery','#1565c0')}${col('phase2','Phase 2: Data Collection','#00838f')}${col('phase3','Phase 3: Config & Handover','#2e7d32')}</div>${done.length?'<div class="section-header" style="margin-top:28px"><h3>Completed ('+done.length+')</h3></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'+done.map(c=>'<div class="pipeline-card" onclick="openClientDetail(\''+esc(c.id)+'\')" style="background:#f1f8e9;border:1px solid #c8e6c9"><div class="pc-name">'+esc(c.company)+'</div><div class="pc-company">'+esc(c.type==='tc_company'?'TC Co':'Brokerage')+'</div><div style="margin-top:6px"><span class="status status-completed">Completed</span></div></div>').join('')+'</div>':''}`;
+  return `<div class="pipeline">${col('phase1','Phase 1: Sales & Discovery','#4B876C')}${col('phase2','Phase 2: Data Collection','#00838f')}${col('phase3','Phase 3: Config & Handover','#2e7d32')}</div>${done.length?'<div class="section-header" style="margin-top:28px"><h3>Completed ('+done.length+')</h3></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'+done.map(c=>'<div class="pipeline-card" onclick="openClientDetail(\''+esc(c.id)+'\')" style="background:#f1f8e9;border:1px solid #c8e6c9"><div class="pc-name">'+esc(c.company)+'</div><div class="pc-company">'+esc(c.type==='tc_company'?'TC Co':'Brokerage')+'</div><div style="margin-top:6px"><span class="status status-completed">Completed</span></div></div>').join('')+'</div>':''}`;
 }
 
 function renderClients() {
@@ -578,9 +578,9 @@ function renderDetail() {
       const label = isGate ? item.id.toUpperCase() : item.id.replace(/p\ds/,'');
       const completedInfo = st.completedDate ? ' ('+fmtDate(st.completedDate)+(st.completedBy?' by '+esc(userName(st.completedBy)):'')+')' : '';
       const linksHtml = links.length ? '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">' + links.map(l =>
-        '<span style="display:inline-flex;align-items:center;gap:4px;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:2px 8px;font-size:11px">' +
-        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>' +
-        '<a href="'+esc(l.url)+'" target="_blank" rel="noopener" style="color:#1565c0;text-decoration:none;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="event.stopPropagation()" title="'+esc(l.url)+'">'+esc(l.label || l.url)+'</a>' +
+        '<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f0ec;border:1px solid #a3c9b3;border-radius:4px;padding:2px 8px;font-size:11px">' +
+        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4B876C" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>' +
+        '<a href="'+esc(l.url)+'" target="_blank" rel="noopener" style="color:#4B876C;text-decoration:none;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="event.stopPropagation()" title="'+esc(l.url)+'">'+esc(l.label || l.url)+'</a>' +
         '<button onclick="event.stopPropagation();removeLink(\''+esc(c.id)+'\',\''+esc(item.id)+'\',\''+esc(l.id)+'\')" style="background:none;border:none;cursor:pointer;color:#c62828;font-size:12px;padding:0;line-height:1" title="Remove link">\u00d7</button></span>'
       ).join('') + '</div>' : '';
       return `<div class="step-item ${esc(st.status)} ${isGate?'gate-item':''}">
@@ -599,7 +599,7 @@ function renderDetail() {
           <button class="step-notes-btn ${st.note?'has-note':''}" onclick="event.stopPropagation();openNoteModal('${esc(c.id)}','${esc(item.id)}')" title="${st.note?'Edit note':'Add note'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="step-notes-btn ${links.length?'has-note':''}" onclick="event.stopPropagation();openLinkModal('${esc(c.id)}','${esc(item.id)}')" title="${links.length?links.length+' link(s)':'Attach link'}" style="${links.length?'color:#1565c0':''}">
+          <button class="step-notes-btn ${links.length?'has-note':''}" onclick="event.stopPropagation();openLinkModal('${esc(c.id)}','${esc(item.id)}')" title="${links.length?links.length+' link(s)':'Attach link'}" style="${links.length?'color:#4B876C':''}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
           </button>
         </div>
@@ -907,7 +907,7 @@ async function saveTeamMember() {
     state.team.push(member);
     showToast(name+' added to team','success');
   } catch(e) {
-    const colors = ['#1565c0','#00838f','#2e7d32','#7b1fa2','#c62828','#ef6c00','#283593','#00695c','#4e342e','#37474f'];
+    const colors = ['#4B876C','#00838f','#2e7d32','#7b1fa2','#c62828','#ef6c00','#283593','#00695c','#4e342e','#37474f'];
     state.team.push({ id: uid(), ...data, color: colors[state.team.length%colors.length], isDefault: false });
     await idbCache.queueAction({ type: 'create_team', data });
     showToast(name+' added (offline)','warn');

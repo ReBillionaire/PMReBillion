@@ -6,14 +6,14 @@
 <title>ReBillion.ai — Onboarding Project Manager</title>
 <style>
 :root {
-  --blue: #1565c0; --blue-light: #e3f2fd; --blue-bg: #1e88e5;
+  --blue: #4B876C; --blue-light: #e8f0ec; --blue-bg: #5a9a7e;
   --teal: #00838f; --teal-light: #e0f2f1; --teal-bg: #00acc1;
   --green: #2e7d32; --green-light: #e8f5e9; --green-bg: #43a047;
   --purple: #7b1fa2; --purple-light: #f3e5f5;
   --amber: #f9a825; --amber-light: #fffde7;
   --orange: #e65100; --orange-light: #fff3e0;
   --red: #c62828; --red-light: #fce4ec;
-  --dark: #0f2b46; --text: #1a2a3a; --muted: #607d8b; --light-muted: #90a4ae;
+  --dark: #1a3a2a; --text: #1a2a2a; --muted: #607d8b; --light-muted: #90a4ae;
   --bg: #f0f4f8; --card: #fff; --border: #e0e8f0;
   --sidebar-w: 240px; --radius: 12px;
 }
@@ -28,18 +28,18 @@ body.offline .main { margin-top: 30px; }
 /* ── Sidebar ── */
 .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-w); background: var(--dark); color: #fff; display: flex; flex-direction: column; z-index: 100; transition: transform 0.25s; }
 .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.sidebar-logo h1 { font-size: 20px; font-weight: 800; } .sidebar-logo h1 span { color: #5ec2f7; }
+.sidebar-logo h1 { font-size: 20px; font-weight: 800; } .sidebar-logo h1 span { color: #D05F0D; }
 .sidebar-logo p { font-size: 11px; opacity: 0.5; margin-top: 2px; }
 .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
 .nav-section { padding: 8px 20px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.35); }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7); transition: all 0.15s; border-left: 3px solid transparent; }
 .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
-.nav-item.active { background: rgba(255,255,255,0.1); color: #fff; border-left-color: #5ec2f7; }
+.nav-item.active { background: rgba(255,255,255,0.1); color: #fff; border-left-color: #D05F0D; }
 .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; }
 .nav-item.active svg { opacity: 1; }
-.nav-badge { margin-left: auto; background: #5ec2f7; color: var(--dark); font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; }
+.nav-badge { margin-left: auto; background: #D05F0D; color: var(--dark); font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; }
 .sidebar-user { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
-.sidebar-user .avatar-sm { width: 32px; height: 32px; border-radius: 50%; background: #5ec2f7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--dark); }
+.sidebar-user .avatar-sm { width: 32px; height: 32px; border-radius: 50%; background: #D05F0D; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--dark); }
 .sidebar-user-info { font-size: 12px; flex: 1; } .sidebar-user-info .name { font-weight: 600; } .sidebar-user-info .role { opacity: 0.5; font-size: 11px; }
 .logout-btn { background: none; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
 .logout-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }

@@ -322,38 +322,9 @@ if (googleAuthEnabled) {
   });
 }
 
-// Login (C6: rate limited)
-app.post('/api/auth/login', loginLimiter, async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password required' });
-    }
-    const user = await db.getUserByName(username.trim());
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-    req.session.userId = user.id;
-    // Explicitly save session before responding (critical for serverless)
-    await new Promise((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
-    res.json({
-      success: true,
-      user: { id: user.id, name: user.name, role: user.role, email: user.email, color: user.color, type: user.type },
-      csrfToken: res.locals.csrfToken
-    });
-  } catch (e) {
-    console.error('Login error:', e);
-    safeError(res, 500, 'Server error');
-  }
+// Username/password login disabled — Google OAuth only
+app.post('/api/auth/login', (req, res) => {
+  res.status(403).json({ message: 'Username/password login is disabled. Please use Google sign-in.' });
 });
 
 // Logout

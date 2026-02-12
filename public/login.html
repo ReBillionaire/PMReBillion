@@ -5,40 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ReBillion.ai — Sign In</title>
 <style>
-:root { --dark: #0f2b46; --blue: #1565c0; --blue-light: #e3f2fd; --accent: #5ec2f7; --text: #1a2a3a; --muted: #607d8b; --bg: #f0f4f8; --card: #fff; --border: #e0e8f0; --red: #c62828; }
+:root { --dark: #1a3a2a; --primary: #4B876C; --primary-light: #e8f0ec; --accent: #D05F0D; --text: #1a2a2a; --muted: #607d8b; --bg: #f0f5f2; --card: #fff; --border: #d4e0d8; --red: #c62828; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--dark); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
 .login-wrapper { width: 100%; max-width: 420px; padding: 20px; }
 .login-card { background: var(--card); border-radius: 20px; padding: 48px 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .logo { text-align: center; margin-bottom: 32px; }
+.logo svg { width: 64px; height: auto; margin-bottom: 16px; }
 .logo h1 { font-size: 28px; font-weight: 800; color: var(--dark); }
 .logo h1 span { color: var(--accent); }
 .logo p { font-size: 13px; color: var(--muted); margin-top: 4px; }
-.form-group { margin-bottom: 20px; }
-.form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--dark); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-.form-group input { width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 10px; font-size: 15px; font-family: inherit; background: var(--bg); transition: all 0.2s; }
-.form-group input:focus { outline: none; border-color: var(--accent); background: #fff; }
-.btn-login { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--blue), var(--accent)); cursor: pointer; transition: all 0.2s; font-family: inherit; }
-.btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(21,101,192,0.3); }
-.btn-login:active { transform: translateY(0); }
-.btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 .error-msg { margin-top: 16px; padding: 10px 14px; background: #fce4ec; color: var(--red); border-radius: 8px; font-size: 13px; font-weight: 500; display: none; text-align: center; }
-.hint { margin-top: 24px; text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; }
-.hint strong { color: var(--text); }
 .bg-shapes { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: -1; }
-.bg-shapes div { position: absolute; border-radius: 50%; opacity: 0.08; }
-.bg-shapes .s1 { width: 400px; height: 400px; background: var(--accent); top: -100px; right: -100px; }
-.bg-shapes .s2 { width: 300px; height: 300px; background: #00838f; bottom: -80px; left: -60px; }
+.bg-shapes div { position: absolute; border-radius: 50%; opacity: 0.1; }
+.bg-shapes .s1 { width: 400px; height: 400px; background: var(--primary); top: -100px; right: -100px; }
+.bg-shapes .s2 { width: 300px; height: 300px; background: var(--accent); bottom: -80px; left: -60px; }
 .bg-shapes .s3 { width: 200px; height: 200px; background: #2e7d32; bottom: 20%; right: 10%; }
 
-/* Divider */
-.divider { display: flex; align-items: center; margin: 24px 0; gap: 12px; }
-.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.divider span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
-
 /* Google Sign-in Button */
-.btn-google { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--text); background: #fff; cursor: pointer; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; }
-.btn-google:hover { background: var(--bg); border-color: #ccc; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.btn-google { width: 100%; padding: 14px 14px; border: 2px solid var(--border); border-radius: 10px; font-size: 15px; font-weight: 600; color: var(--text); background: #fff; cursor: pointer; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; }
+.btn-google:hover { background: var(--bg); border-color: #bbb; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
 .btn-google:active { transform: translateY(0); }
 .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
 </style>
@@ -48,6 +34,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div class="login-wrapper">
   <div class="login-card">
     <div class="logo">
+      <svg width="121" height="159" viewBox="0 0 121 159" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path opacity="0.96" fill-rule="evenodd" clip-rule="evenodd" d="M10.5798 0.409803C10.8685 0.262573 11.1887 0.188891 11.5128 0.185749C31.6018 -0.00900137 51.6871 0.194235 71.7678 0.794282C71.8942 0.798061 72.0232 0.813357 72.1471 0.839098C104.626 7.5872 116.167 26.7851 106.77 58.4304C106.719 58.6005 106.646 58.7676 106.556 58.9203C104.291 62.7528 102.028 66.5844 99.763 70.4166C99.1969 71.3745 99.4435 72.6045 100.312 73.3001C119.98 89.0559 124.951 108.968 115.223 133.034C110.722 141.881 103.614 144.928 93.8953 142.174C87.985 140.123 84.7451 135.985 84.1766 129.76C84.1537 129.508 84.1801 129.253 84.2479 129.009C85.9118 123.03 87.4654 117.01 88.9099 110.951C88.9828 110.645 88.9894 110.325 88.9239 110.018C86.8403 100.227 80.8344 94.301 70.9064 92.2401C70.796 92.2172 70.6825 92.2033 70.5698 92.1982C57.9665 91.6283 45.3578 91.4173 32.7437 91.5665C31.5207 91.5809 30.5496 92.5964 30.5792 93.8192C31.0413 112.875 30.4317 131.826 28.7503 150.671C28.7128 151.091 28.5548 151.495 28.2869 151.821C22.7723 158.537 15.871 160.226 7.58206 156.888C7.43829 156.83 7.2996 156.755 7.1729 156.666C4.44855 154.747 2.34599 152.292 0.864235 149.299C0.7274 149.023 0.658446 148.718 0.65307 148.41C-0.148321 102.444 -0.148923 56.478 0.651262 10.512C0.657785 10.1373 0.758845 9.76936 0.953924 9.44935C3.39027 5.45274 6.59954 2.43924 10.5798 0.409803ZM30.5205 30.3805C30.5205 29.1827 31.4813 28.2059 32.6791 28.191C44.4318 28.0454 56.1782 28.252 67.9192 28.8127C68.1722 28.8248 68.4254 28.8819 68.6583 28.9814C80.7063 34.1273 84.0742 42.7376 78.7599 54.8111C78.6954 54.9576 78.613 55.0994 78.516 55.2268C76.2197 58.2416 73.2912 60.3868 69.7302 61.6633C69.5911 61.7131 69.4465 61.747 69.2999 61.7663C57.1471 63.3626 44.9242 63.9856 32.6323 63.6351C31.4533 63.6015 30.5205 62.632 30.5205 61.4524C30.5205 51.0949 30.5205 40.7381 30.5205 30.3805Z" fill="#4B876C"/>
+        <path d="M69.7638 143.683C69.7638 136.688 64.5179 130.276 56.3576 130.276C48.1973 130.276 42.9514 137.271 42.9514 143.683C42.9514 150.094 47.0316 157.089 56.3576 157.089C65.6837 157.089 69.7638 150.677 69.7638 143.683Z" fill="#D05F0D"/>
+      </svg>
       <h1>Re<span>Billion</span>.ai</h1>
       <p>Onboarding Project Manager</p>
     </div>
@@ -63,79 +53,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       Sign in with Google
     </a>
 
-    <div class="divider"><span>or</span></div>
-
-    <!-- Username/Password Login -->
-    <form id="login-form" onsubmit="handleLogin(event)">
-      <div class="form-group">
-        <label for="username">Username</label>
-        <input type="text" id="username" placeholder="e.g. Atul" autocomplete="username" required>
-      </div>
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
-      </div>
-      <button type="submit" class="btn-login" id="btn-login">Sign In</button>
-      <div class="error-msg" id="error"></div>
-    </form>
-    <div class="hint">
-      Default credentials: use your <strong>first name</strong> as both username and password<br>
-      (e.g. <strong>atul</strong> / <strong>atul</strong>)
-    </div>
+    <div class="error-msg" id="error"></div>
   </div>
 </div>
 <script>
-async function handleLogin(e) {
-  e.preventDefault();
-  const btn = document.getElementById('btn-login');
-  const err = document.getElementById('error');
-  err.style.display = 'none';
-  btn.disabled = true;
-  btn.textContent = 'Signing in...';
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: document.getElementById('username').value.trim(),
-        password: document.getElementById('password').value
-      })
-    });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      window.location.href = '/app.html';
-    } else {
-      err.textContent = data.message || 'Login failed';
-      err.style.display = 'block';
-    }
-  } catch (ex) {
-    err.textContent = 'Cannot connect to server. Is it running?';
-    err.style.display = 'block';
-  }
-  btn.disabled = false;
-  btn.textContent = 'Sign In';
-}
-
 // Check for Google auth error in URL
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('error') === 'auth_failed') {
   const err = document.getElementById('error');
-  err.textContent = 'Google sign-in is not configured yet. Please use username/password.';
+  err.textContent = 'Google sign-in failed. Please ensure your account is authorized and try again.';
   err.style.display = 'block';
 }
-
-// Check if Google OAuth is enabled and hide button if not
-fetch('/api/auth/config')
-  .then(r => r.json())
-  .then(config => {
-    if (!config.googleAuthEnabled) {
-      const googleBtn = document.getElementById('btn-google');
-      const divider = document.querySelector('.divider');
-      if (googleBtn) googleBtn.style.display = 'none';
-      if (divider) divider.style.display = 'none';
-    }
-  })
-  .catch(() => {});
 </script>
 </body>
 </html>
