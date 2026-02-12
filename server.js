@@ -17,6 +17,9 @@ const db = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy (required for Vercel/serverless - enables secure cookies behind reverse proxy)
+app.set('trust proxy', 1);
+
 // ══════════════════════════════════════════════════════════════
 // PASSPORT GOOGLE OAUTH SETUP (only if credentials are configured)
 // ══════════════════════════════════════════════════════════════
