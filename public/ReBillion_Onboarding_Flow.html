@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReBillion.ai — Onboarding Flow v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f0f4f8; color: #1a2a3a; line-height: 1.5; }
+
+  .header { background: linear-gradient(135deg, #0f2b46 0%, #1b4d7a 50%, #2a6fa8 100%); color: #fff; padding: 48px 40px 40px; text-align: center; }
+  .header h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .header h1 span { color: #5ec2f7; }
+  .header p { font-size: 16px; opacity: 0.8; font-weight: 300; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px 60px; }
+
+  .section-label { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #1b4d7a; background: #d6eaf8; padding: 4px 14px; border-radius: 20px; margin-bottom: 10px; }
+  .section-title { font-size: 26px; font-weight: 700; color: #0f2b46; margin-bottom: 28px; }
+
+  /* ── Macro Pipeline ── */
+  .macro { display: flex; gap: 0; margin-bottom: 20px; position: relative; }
+  .macro-phase { flex: 1; position: relative; padding: 28px 22px 22px; border-radius: 16px; color: #fff; min-height: 200px; display: flex; flex-direction: column; overflow: visible; }
+  .macro-phase:nth-child(1) { background: linear-gradient(160deg, #1565c0, #1e88e5); border-radius: 16px 0 0 16px; z-index: 3; }
+  .macro-phase:nth-child(2) { background: linear-gradient(160deg, #00838f, #00acc1); margin-left: -4px; z-index: 2; }
+  .macro-phase:nth-child(3) { background: linear-gradient(160deg, #2e7d32, #43a047); border-radius: 0 16px 16px 0; margin-left: -4px; z-index: 1; }
+  .macro-num { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7; margin-bottom: 3px; }
+  .macro-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .macro-week { font-size: 12px; opacity: 0.75; margin-bottom: 8px; font-weight: 500; }
+  .macro-steps-list { font-size: 11px; opacity: 0.85; margin-bottom: 12px; line-height: 1.6; }
+  .macro-team { margin-top: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .macro-person { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .macro-person .dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; flex-shrink: 0; }
+  .macro-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; width: 32px; height: 32px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .macro-arrow svg { width: 14px; height: 14px; }
+  .macro-arrow-1 { left: calc(33.33% - 16px); }
+  .macro-arrow-2 { left: calc(66.66% - 16px); }
+
+  /* ── Phase Gate Row ── */
+  .gate-row { display: flex; gap: 0; margin-bottom: 48px; }
+  .gate-spacer { flex: 1; }
+  .gate { display: flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 11px; font-weight: 700; border-radius: 8px; white-space: nowrap; }
+  .gate-sales { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+  .gate-onboard { background: #e0f2f1; color: #00838f; border: 1px solid #80cbc4; }
+  .gate-tech { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+  .gate svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+  /* ── Handoff banners ── */
+  .handoff-row { display: flex; gap: 0; margin-bottom: 8px; }
+  .handoff-spacer { flex: 1; }
+  .handoff { display: flex; align-items: center; gap: 8px; background: #fff3e0; border: 1px dashed #ef6c00; border-radius: 10px; padding: 8px 16px; font-size: 12px; font-weight: 600; color: #e65100; white-space: nowrap; }
+  .handoff svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* ── Legend ── */
+  .legend { background: #fff; border-radius: 16px; padding: 24px 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 48px; display: flex; gap: 36px; flex-wrap: wrap; align-items: flex-start; }
+  .legend-group h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+  .legend-group.sales h4 { color: #1565c0; }
+  .legend-group.onboarding h4 { color: #00838f; }
+  .legend-group.implementation h4 { color: #2e7d32; }
+  .legend-member { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
+  .avatar.blue { background: #1565c0; } .avatar.teal { background: #00838f; } .avatar.green { background: #2e7d32; }
+  .legend-name { font-size: 13px; font-weight: 600; color: #1a2a3a; }
+  .legend-role { font-size: 11px; color: #90a4ae; }
+
+  /* ── Flow ── */
+  .flow-section { margin-bottom: 48px; }
+  .flow-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .flow-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .flow-icon svg { width: 20px; height: 20px; }
+  .flow-icon.blue { background: #1565c0; } .flow-icon.teal { background: #00838f; } .flow-icon.green { background: #2e7d32; }
+  .flow-header-text h3 { font-size: 19px; font-weight: 700; color: #0f2b46; }
+  .flow-header-text p { font-size: 13px; color: #607d8b; font-weight: 500; }
+
+  .flow-steps { display: grid; grid-template-columns: 1fr; gap: 0; position: relative; padding-left: 28px; }
+  .flow-steps::before { content: ''; position: absolute; left: 13px; top: 16px; bottom: 16px; width: 2px; background: #cfd8dc; }
+  .flow-step { display: flex; gap: 16px; position: relative; padding: 10px 0; }
+  .flow-dot { position: absolute; left: -22px; top: 16px; width: 18px; height: 18px; border-radius: 50%; border: 3px solid; background: #fff; z-index: 2; }
+  .flow-dot.blue { border-color: #1565c0; } .flow-dot.teal { border-color: #00838f; } .flow-dot.green { border-color: #2e7d32; }
+  .flow-dot.filled.blue { background: #1565c0; } .flow-dot.filled.teal { background: #00838f; } .flow-dot.filled.green { background: #2e7d32; }
+  .flow-dot.gate-dot { border-width: 4px; width: 20px; height: 20px; left: -23px; top: 15px; }
+
+  .flow-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04); flex: 1; display: flex; align-items: flex-start; gap: 14px; border-left: 4px solid transparent; transition: box-shadow 0.2s; }
+  .flow-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.06); }
+  .flow-card.blue-border { border-left-color: #1565c0; } .flow-card.teal-border { border-left-color: #00838f; } .flow-card.green-border { border-left-color: #2e7d32; }
+  .flow-card.gate-card { background: #fffde7; border-left-color: #f9a825; border-left-width: 5px; }
+  .flow-card.new-card { background: #f3e5f5; border-left-color: #7b1fa2; border-left-width: 5px; }
+
+  .step-num { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; margin-top: 1px; }
+  .step-num.blue { background: #1565c0; } .step-num.teal { background: #00838f; } .step-num.green { background: #2e7d32; }
+  .step-num.gate { background: #f9a825; } .step-num.new { background: #7b1fa2; }
+
+  .step-content { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 700; color: #0f2b46; margin-bottom: 2px; }
+  .step-desc { font-size: 12px; color: #607d8b; line-height: 1.5; }
+  .step-meta { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .step-tag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 3px; }
+  .tag-person { background: #e8f5e9; color: #2e7d32; }
+  .tag-time { background: #e3f2fd; color: #1565c0; }
+  .tag-output { background: #fce4ec; color: #c62828; }
+  .tag-client { background: #fff3e0; color: #e65100; }
+  .tag-gate { background: #fffde7; color: #f57f17; border: 1px solid #fff176; }
+  .tag-new { background: #f3e5f5; color: #7b1fa2; }
+
+  .flow-handoff { display: flex; align-items: center; gap: 12px; margin: 10px 0 32px 28px; padding: 12px 18px; background: linear-gradient(90deg, #fff3e0, #fff8e1); border: 1px dashed #ef6c00; border-radius: 12px; }
+  .flow-handoff-icon { width: 34px; height: 34px; background: #ef6c00; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .flow-handoff-icon svg { width: 16px; height: 16px; }
+  .flow-handoff-text { font-size: 13px; font-weight: 600; color: #e65100; }
+  .flow-handoff-text span { display: block; font-size: 11px; font-weight: 400; color: #bf360c; margin-top: 2px; }
+
+  /* ── New badge ── */
+  .badge-new { display: inline-block; background: #7b1fa2; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.5px; }
+
+  .footer { text-align: center; padding: 28px; color: #90a4ae; font-size: 12px; border-top: 1px solid #e0e0e0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Re<span>Billion</span>.ai</h1>
+  <p>Client Onboarding Flow &mdash; From Sales Discovery to Successful Handover &mdash; v2.0</p>
+</div>
+
+<div class="container">
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-group sales">
+      <h4>Sales Team</h4>
+      <div class="legend-member"><div class="avatar blue">L</div><div><div class="legend-name">Lisa</div><div class="legend-role">Sales</div></div></div>
+      <div class="legend-member"><div class="avatar blue">V</div><div><div class="legend-name">Vikas</div><div class="legend-role">Sales</div></div></div>
+    </div>
+    <div class="legend-group onboarding">
+      <h4>Onboarding &amp; Account Management</h4>
+      <div class="legend-member"><div class="avatar teal">J</div><div><div class="legend-name">Julie</div><div class="legend-role">Onboarding / Account Mgr</div></div></div>
+      <div class="legend-member"><div class="avatar teal">E</div><div><div class="legend-name">Eddy</div><div class="legend-role">Onboarding / Account Mgr</div></div></div>
+    </div>
+    <div class="legend-group implementation">
+      <h4>Technical Implementation</h4>
+      <div class="legend-member"><div class="avatar green">A</div><div><div class="legend-name">Atul</div><div class="legend-role">Implementation Lead</div></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ MACRO PIPELINE ═══ -->
+  <div class="section-label">Macro View</div>
+  <div class="section-title">Three-Phase Onboarding Pipeline</div>
+
+  <div class="macro">
+    <div class="macro-phase">
+      <div class="macro-num">Phase 1</div>
+      <div class="macro-title">Sales &amp; Discovery</div>
+      <div class="macro-week">Week 0&ndash;1 &nbsp;|&nbsp; 6 Steps</div>
+      <div class="macro-steps-list">
+        Qualify &rarr; Discover &rarr; Demo &rarr; Propose &rarr; Close &rarr; Handoff
+      </div>
+      <div class="macro-team">
+        <span class="macro-person"><span class="dot"></span> Lisa</span>
+        <span class="macro-person"><span class="dot"></span> Vikas</span>
+      </div>
+    </div>
+    <div class="macro-phase">
+      <div class="macro-num">Phase 2</div>
+      <div class="macro-title">Data Collection &amp; Gathering</div>
+      <div class="macro-week">Week 1&ndash;2 &nbsp;|&nbsp; 10 Steps</div>
+      <div class="macro-steps-list">
+        Welcome &rarr; Kick-Off &rarr; Tech Inventory &rarr; Credentials &rarr; Workflows &rarr; Roster &rarr; Migration Plan &rarr; Package &rarr; Internal Sync &rarr; Handoff
+      </div>
+      <div class="macro-team">
+        <span class="macro-person"><span class="dot"></span> Julie</span>
+        <span class="macro-person"><span class="dot"></span> Eddy</span>
+      </div>
+    </div>
+    <div class="macro-phase">
+      <div class="macro-num">Phase 3</div>
+      <div class="macro-title">Config, Setup &amp; Handover</div>
+      <div class="macro-week">Week 2&ndash;4 &nbsp;|&nbsp; 11 Steps</div>
+      <div class="macro-steps-list">
+        Provision &rarr; Configure &rarr; Integrate &rarr; QA &rarr; UAT &rarr; Train &rarr; Go-Live &rarr; Adopt &rarr; Support &rarr; ROI Review
+      </div>
+      <div class="macro-team">
+        <span class="macro-person"><span class="dot"></span> Atul</span>
+        <span class="macro-person"><span class="dot"></span> Julie / Eddy</span>
+      </div>
+    </div>
+    <div class="macro-arrow macro-arrow-1"><svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    <div class="macro-arrow macro-arrow-2"><svg viewBox="0 0 24 24" fill="none" stroke="#00838f" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+  </div>
+
+  <!-- Handoff + Gate indicators -->
+  <div class="handoff-row">
+    <div class="handoff-spacer"></div>
+    <div class="handoff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Handoff + Gate 1</div>
+    <div class="handoff-spacer"></div>
+    <div class="handoff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Handoff + Gate 2</div>
+    <div class="handoff-spacer"></div>
+  </div>
+  <div class="gate-row">
+    <div class="gate-spacer"></div>
+    <div class="gate gate-tech"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>Gate 3: Config &rarr; UAT</div>
+    <div class="gate gate-tech"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>Gate 4: UAT &rarr; Train</div>
+    <div class="gate gate-tech"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>Gate 5: Train &rarr; Go-Live</div>
+    <div class="gate gate-onboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>Gate 6: 30-Day Review</div>
+    <div class="gate-spacer"></div>
+  </div>
+
+  <!-- ═══ DETAILED FLOWS ═══ -->
+  <div class="section-label">Detailed Flow</div>
+  <div class="section-title">Step-by-Step Process (27 Steps + 6 Phase Gates)</div>
+
+  <!-- ── PHASE 1 ── -->
+  <div class="flow-section">
+    <div class="flow-header">
+      <div class="flow-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+      <div class="flow-header-text"><h3>Phase 1: Sales &amp; Discovery</h3><p>Lisa &amp; Vikas &nbsp;|&nbsp; Week 0&ndash;1 &nbsp;|&nbsp; 6 steps</p></div>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step"><div class="flow-dot blue filled"></div><div class="flow-card blue-border"><div class="step-num blue">1</div><div class="step-content"><div class="step-title">Lead Qualification</div><div class="step-desc">Qualify against criteria: company type, volume (30+/mo), pain points, tech stack, decision authority, budget. Identify client scenario profile (single-office, multi-office, TC company, etc.).</div><div class="step-meta"><span class="step-tag tag-person">Lisa / Vikas</span><span class="step-tag tag-output">Go/No-Go + Scenario Profile</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot blue"></div><div class="flow-card blue-border"><div class="step-num blue">2</div><div class="step-content"><div class="step-title">Discovery Call</div><div class="step-desc">30&ndash;45 min structured call: current workflow, tech landscape (CRM, TMS, doc storage), pain points, scaling goals. Collect baseline metrics (transactions/TC, error rate, days to close).</div><div class="step-meta"><span class="step-tag tag-person">Lisa / Vikas</span><span class="step-tag tag-time">30&ndash;45 min</span><span class="step-tag tag-output">Discovery Notes + Baselines</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot blue"></div><div class="flow-card blue-border"><div class="step-num blue">3</div><div class="step-content"><div class="step-title">Follow-Up &amp; Demo Scheduling</div><div class="step-desc">Send follow-up email summarizing pain points. Schedule tailored demo within 3&ndash;5 days. Customize demo environment for their tools and scenario.</div><div class="step-meta"><span class="step-tag tag-person">Lisa / Vikas</span><span class="step-tag tag-time">Within 24 hrs</span><span class="step-tag tag-output">Follow-Up Email</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot blue"></div><div class="flow-card blue-border"><div class="step-num blue">4</div><div class="step-content"><div class="step-title">Tailored Product Demo</div><div class="step-desc">45&ndash;60 min live demo: AI doc processing, workflow automation, integration with their tools, compliance validation, agent portal. Address data migration and transition approach.</div><div class="step-meta"><span class="step-tag tag-person">Lisa / Vikas</span><span class="step-tag tag-time">45&ndash;60 min</span><span class="step-tag tag-client">Client Attends</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot blue"></div><div class="flow-card blue-border"><div class="step-num blue">5</div><div class="step-content"><div class="step-title">Proposal &amp; Objection Handling</div><div class="step-desc">Deliver customized pricing. Handle objections (cost, existing tools, adoption, security, implementation time). Share client time commitment overview (~10&ndash;14 hours across 4 weeks).</div><div class="step-meta"><span class="step-tag tag-person">Lisa / Vikas</span><span class="step-tag tag-output">Proposal + Time Commitment</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot blue filled"></div><div class="flow-card blue-border"><div class="step-num blue">6</div><div class="step-content"><div class="step-title">Contract Signed &amp; Deal Closed</div><div class="step-desc">Finalize agreement, confirm scope. Complete Sales-to-AM Handoff Form. Schedule warm intro call with Julie or Eddy. Transfer all discovery materials.</div><div class="step-meta"><span class="step-tag tag-person">Lisa / Vikas</span><span class="step-tag tag-output">Signed Agreement</span><span class="step-tag tag-output">Handoff Form</span></div></div></div></div>
+    </div>
+    <!-- Gate 1 + Handoff -->
+    <div class="flow-handoff">
+      <div class="flow-handoff-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></div>
+      <div class="flow-handoff-text">GATE 1: Lisa / Vikas &rarr; Julie / Eddy<span>Contract signed. Handoff form complete. Warm intro scheduled. All discovery materials, baselines, and scenario profile transferred. Both parties sign off.</span></div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 2 ── -->
+  <div class="flow-section">
+    <div class="flow-header">
+      <div class="flow-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
+      <div class="flow-header-text"><h3>Phase 2: Data Collection &amp; Information Gathering</h3><p>Julie &amp; Eddy &nbsp;|&nbsp; Week 1&ndash;2 &nbsp;|&nbsp; 10 steps</p></div>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step"><div class="flow-dot teal filled"></div><div class="flow-card teal-border"><div class="step-num teal">1</div><div class="step-content"><div class="step-title">Welcome Email &amp; Information Request Packet</div><div class="step-desc">Send welcome email with onboarding timeline, client time commitment overview, and the Information Request Packet. Introduce the AM as dedicated contact.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 1</span><span class="step-tag tag-output">Welcome Email</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal"></div><div class="flow-card teal-border"><div class="step-num teal">2</div><div class="step-content"><div class="step-title">Onboarding Kick-Off Call</div><div class="step-desc">30-min call: walk through onboarding process, review Information Request Packet, identify client&rsquo;s internal tech contact, confirm scenario profile, and schedule first check-in.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 1&ndash;2</span><span class="step-tag tag-client">Client Attends</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal"></div><div class="flow-card teal-border"><div class="step-num teal">3</div><div class="step-content"><div class="step-title">Technology Stack Inventory</div><div class="step-desc">Map full tech environment: TMS (SkySlope/Dotloop/OTC), CRM (Follow Up Boss), document storage (Google Drive), e-signature, accounting (Brokermint), MLS systems.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 3&ndash;5</span><span class="step-tag tag-output">Tech Inventory Form</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal"></div><div class="flow-card teal-border"><div class="step-num teal">4</div><div class="step-content"><div class="step-title">API Credentials &amp; Access Collection</div><div class="step-desc">Collect API keys, OAuth authorizations, or credentials. Use secure transfer only (encrypted email, credential vault). Coordinate OAuth flows with client. Never accept plain text credentials.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 3&ndash;7</span><span class="step-tag tag-client">Client Action Required</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal"></div><div class="flow-card teal-border"><div class="step-num teal">5</div><div class="step-content"><div class="step-title">Workflow &amp; Contract Documentation</div><div class="step-desc">Document transaction types, contract forms, compliance review process, critical fields (property, dates, parties, financial), and current checklists per transaction type.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 5&ndash;7</span><span class="step-tag tag-output">Workflow Map</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal"></div><div class="flow-card teal-border"><div class="step-num teal">6</div><div class="step-content"><div class="step-title">Agent Roster Collection</div><div class="step-desc">Collect complete agent list: name, email, role, license #, team/office, MLS ID. Provide the Agent Roster Template spreadsheet. Ask broker to send agent announcement email.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 5&ndash;7</span><span class="step-tag tag-client">Client Fills Template</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal"></div><div class="flow-card teal-border new-card"><div class="step-num new">7</div><div class="step-content"><div class="step-title">Data Migration &amp; Transition Planning <span class="badge-new">NEW</span></div><div class="step-desc">Decide migration approach: New files only (standard), Parallel run (20&ndash;50 open files), or Full migration (decommissioning old TMS). Collect historical data requirements. Flag migration scope to Atul &mdash; never promise full migration without tech confirmation.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 5&ndash;7</span><span class="step-tag tag-output">Migration Scope Doc</span><span class="step-tag tag-client">Client Decision</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal"></div><div class="flow-card teal-border"><div class="step-num teal">8</div><div class="step-content"><div class="step-title">Data Package Assembly</div><div class="step-desc">Compile all 9 items into standardized folder: Handoff Form, Tech Inventory, Credentials, Workflow Docs, Field Mapping, Agent Roster, Migration Scope, Discovery Notes, Special Requirements.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 7&ndash;10</span><span class="step-tag tag-output">Complete Data Package (9 items)</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal"></div><div class="flow-card teal-border new-card"><div class="step-num new">9</div><div class="step-content"><div class="step-title">Pre-Configuration Internal Sync <span class="badge-new">NEW</span></div><div class="step-desc">30-min internal call: Julie/Eddy briefs Atul on what was sold vs. what needs to be built. Confirm scenario profile, review migration approach, flag non-standard requirements, agree on go-live target and risks.</div><div class="step-meta"><span class="step-tag tag-person">Julie/Eddy + Atul</span><span class="step-tag tag-time">Day 8&ndash;10</span><span class="step-tag tag-output">Aligned Plan</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot teal filled"></div><div class="flow-card teal-border"><div class="step-num teal">10</div><div class="step-content"><div class="step-title">Data Package Handoff to Technical</div><div class="step-desc">Atul reviews the data package for completeness. If any item is missing, package is returned to Julie/Eddy with specific gaps. Atul accepts only when all 9 items are confirmed.</div><div class="step-meta"><span class="step-tag tag-person">Atul accepts</span><span class="step-tag tag-time">Day 10</span><span class="step-tag tag-output">Accepted Package</span></div></div></div></div>
+    </div>
+    <!-- Gate 2 + Handoff -->
+    <div class="flow-handoff">
+      <div class="flow-handoff-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></div>
+      <div class="flow-handoff-text">GATE 2: Julie / Eddy &rarr; Atul<span>Data package complete (all 9 items). Internal sync done. Migration approach confirmed. Atul confirms receipt and acceptance. Julie/Eddy remain involved for client comms.</span></div>
+    </div>
+  </div>
+
+  <!-- ── PHASE 3 ── -->
+  <div class="flow-section">
+    <div class="flow-header">
+      <div class="flow-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <div class="flow-header-text"><h3>Phase 3: Configuration, Setup &amp; Handover</h3><p>Atul (Tech Lead) + Julie / Eddy (AM) &nbsp;|&nbsp; Week 2&ndash;4 &nbsp;|&nbsp; 11 steps</p></div>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step"><div class="flow-dot green filled"></div><div class="flow-card green-border"><div class="step-num green">1</div><div class="step-content"><div class="step-title">Tenant Creation &amp; User Provisioning</div><div class="step-desc">Create client workspace with branding in <strong>staging environment</strong>. Provision all user accounts from roster. Configure role-based access: admin, TC, agent, broker views.</div><div class="step-meta"><span class="step-tag tag-person">Atul</span><span class="step-tag tag-time">Day 1&ndash;2</span><span class="step-tag tag-new">Staging Env</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green"></div><div class="flow-card green-border"><div class="step-num green">2</div><div class="step-content"><div class="step-title">Workflow &amp; Field Configuration</div><div class="step-desc">Set up transaction types, automated checklists, stage definitions, custom field mapping, document templates, notification rules, and compliance validation rules.</div><div class="step-meta"><span class="step-tag tag-person">Atul</span><span class="step-tag tag-time">Day 2&ndash;5</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green"></div><div class="flow-card green-border"><div class="step-num green">3</div><div class="step-content"><div class="step-title">Integration Setup</div><div class="step-desc">Connect all systems: Follow Up Boss (API), SkySlope/Dotloop (OAuth), Open to Close, Google Drive, Brokermint. Configure sync rules, field mapping, data flow direction. Follow escalation protocol if blocked.</div><div class="step-meta"><span class="step-tag tag-person">Atul</span><span class="step-tag tag-time">Day 3&ndash;6</span><span class="step-tag tag-new">48hr Escalation Rule</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green"></div><div class="flow-card green-border"><div class="step-num green">4</div><div class="step-content"><div class="step-title">Internal Testing &amp; QA (Staging)</div><div class="step-desc">Create 3&ndash;5 sample transactions in staging. Test AI validation, integration syncs, workflows, notifications, and permissions. Fix all issues. Promote to UAT environment when passed.</div><div class="step-meta"><span class="step-tag tag-person">Atul</span><span class="step-tag tag-time">Day 5&ndash;7</span><span class="step-tag tag-output">QA Report</span></div></div></div></div>
+      <!-- Gate 3 -->
+      <div class="flow-step"><div class="flow-dot green gate-dot"></div><div class="flow-card gate-card"><div class="step-num gate">G3</div><div class="step-content"><div class="step-title">GATE 3: Configuration &rarr; UAT <span class="badge-new">GATE</span></div><div class="step-desc">All configuration done. Internal QA passed. All integrations tested. No critical defects open. Atul promotes config from Staging to UAT environment.</div><div class="step-meta"><span class="step-tag tag-gate">Atul Sign-Off</span><span class="step-tag tag-output">QA Report Approved</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green"></div><div class="flow-card green-border"><div class="step-num green">5</div><div class="step-content"><div class="step-title">Client UAT (User Acceptance Testing)</div><div class="step-desc">Walk client through 1&ndash;2 real transactions in UAT. Client verifies field mapping, workflows, checklists, integration sync. Document all feedback. Prioritize: critical (fix now) vs. enhancement (post-launch).</div><div class="step-meta"><span class="step-tag tag-person">Atul + Julie/Eddy</span><span class="step-tag tag-time">Day 7&ndash;9</span><span class="step-tag tag-client">Client Attends</span></div></div></div></div>
+      <!-- Gate 4 -->
+      <div class="flow-step"><div class="flow-dot green gate-dot"></div><div class="flow-card gate-card"><div class="step-num gate">G4</div><div class="step-content"><div class="step-title">GATE 4: UAT &rarr; Training <span class="badge-new">GATE</span></div><div class="step-desc">Client has tested real transactions. All critical UAT feedback resolved. Client confirms configuration is acceptable via email/form sign-off.</div><div class="step-meta"><span class="step-tag tag-gate">Client Sign-Off Required</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green"></div><div class="flow-card green-border"><div class="step-num green">6</div><div class="step-content"><div class="step-title">Training Sessions (Live + Recorded)</div><div class="step-desc">Role-based training: Admin &amp; Broker (60 min), TC Power Users (90 min), Agents (30 min). For 75+ agents: split into cohorts, Julie/Eddy co-facilitates. For 150+: train-the-trainer model. All recorded.</div><div class="step-meta"><span class="step-tag tag-person">Atul + Julie/Eddy</span><span class="step-tag tag-time">Day 8&ndash;12</span><span class="step-tag tag-client">Client Attends</span><span class="step-tag tag-output">Recordings</span></div></div></div></div>
+      <!-- Gate 5 -->
+      <div class="flow-step"><div class="flow-dot green gate-dot"></div><div class="flow-card gate-card"><div class="step-num gate">G5</div><div class="step-content"><div class="step-title">GATE 5: Training &rarr; Go-Live <span class="badge-new">GATE</span></div><div class="step-desc">All required training sessions completed. Recordings delivered. Client confirms team is ready. SLA definitions and support escalation path shared. Agent announcement email sent by broker.</div><div class="step-meta"><span class="step-tag tag-gate">Client Sign-Off Required</span><span class="step-tag tag-output">Go-Live Approved</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green filled"></div><div class="flow-card green-border" style="border-left-width: 6px; background: #f1f8e9;"><div class="step-num green">7</div><div class="step-content"><div class="step-title" style="font-size: 15px;">GO-LIVE &amp; Supported Launch</div><div class="step-desc">Promote config to production. Client begins real transactions. Atul on standby for first 5 files. SLA active: P1 Critical (2hr), P2 High (4hr), P3 Standard (24hr). Send go-live email.</div><div class="step-meta"><span class="step-tag tag-person">Atul + Julie/Eddy</span><span class="step-tag tag-time">Day 10+</span><span class="step-tag tag-output">Go-Live Email</span><span class="step-tag tag-client">Client Active</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green"></div><div class="flow-card green-border new-card"><div class="step-num new">8</div><div class="step-content"><div class="step-title">Agent Adoption Tracking <span class="badge-new">NEW</span></div><div class="step-desc">Day 3: Check account activations. Day 7: 50%+ agents active? Day 14: 80%+ target. Day 30: 90%+ target. Offer drop-in Q&amp;A sessions. Work with broker to address individual resistance.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 3&ndash;30</span><span class="step-tag tag-output">Adoption Report</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green"></div><div class="flow-card green-border"><div class="step-num green">9</div><div class="step-content"><div class="step-title">Post-Launch Support (High-Touch &rarr; Steady-State)</div><div class="step-desc">Week 1: Daily check-ins (Julie/Eddy), Atul on standby. Week 2&ndash;4: Bi-weekly calls, workflow fine-tuning. Month 2+: Monthly business reviews, quarterly optimization, standard SLA.</div><div class="step-meta"><span class="step-tag tag-person">Julie/Eddy + Atul</span><span class="step-tag tag-time">Ongoing</span></div></div></div></div>
+      <div class="flow-step"><div class="flow-dot green"></div><div class="flow-card green-border new-card"><div class="step-num new">10</div><div class="step-content"><div class="step-title">ROI &amp; Success Metrics Review <span class="badge-new">NEW</span></div><div class="step-desc">Compare post-ReBillion KPIs against baselines collected during discovery: transactions/TC, error rate, days to close, manual entry hours, adoption rate. Present ROI at 30-day and 90-day reviews.</div><div class="step-meta"><span class="step-tag tag-person">Julie / Eddy</span><span class="step-tag tag-time">Day 30 + Day 90</span><span class="step-tag tag-output">ROI Report</span></div></div></div></div>
+      <!-- Gate 6 -->
+      <div class="flow-step"><div class="flow-dot green gate-dot filled"></div><div class="flow-card gate-card"><div class="step-num gate">G6</div><div class="step-content"><div class="step-title">GATE 6: Go-Live &rarr; Steady-State <span class="badge-new">GATE</span></div><div class="step-desc">First 5 transactions processed successfully. Week 1 daily check-ins completed. No critical open issues. 30-day review meeting completed. Client NPS collected. Onboarding officially closed.</div><div class="step-meta"><span class="step-tag tag-gate">Client + Julie/Eddy Sign-Off</span><span class="step-tag tag-output">Onboarding Complete</span></div></div></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  ReBillion.ai &middot; Client Onboarding Playbook &middot; Confidential &middot; Version 2.0 &middot; February 2026
+</div>
+</body>
+</html>
