@@ -82,8 +82,22 @@ passport.deserializeUser(async (id, done) => {
 // SECURITY MIDDLEWARE
 // ══════════════════════════════════════════════════════════════
 
-// C9: Helmet security headers
-app.use(helmet());
+// C9: Helmet security headers (allow inline scripts for login/app pages)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  }
+}));
 
 // I4: Morgan HTTP access logging
 app.use(morgan('combined'));
@@ -249,6 +263,11 @@ app.get('/app.js', requireLogin, (req, res) => {
 // Get CSRF token (for C4)
 app.get('/api/csrf-token', requireLogin, (req, res) => {
   res.json({ token: res.locals.csrfToken });
+});
+
+// Auth config endpoint - tells frontend if Google OAuth is available
+app.get('/api/auth/config', (req, res) => {
+  res.json({ googleAuthEnabled });
 });
 
 // Google OAuth routes (only if configured)

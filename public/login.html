@@ -120,9 +120,22 @@ async function handleLogin(e) {
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('error') === 'auth_failed') {
   const err = document.getElementById('error');
-  err.textContent = 'Google sign-in failed. Please try again.';
+  err.textContent = 'Google sign-in is not configured yet. Please use username/password.';
   err.style.display = 'block';
 }
+
+// Check if Google OAuth is enabled and hide button if not
+fetch('/api/auth/config')
+  .then(r => r.json())
+  .then(config => {
+    if (!config.googleAuthEnabled) {
+      const googleBtn = document.getElementById('btn-google');
+      const divider = document.querySelector('.divider');
+      if (googleBtn) googleBtn.style.display = 'none';
+      if (divider) divider.style.display = 'none';
+    }
+  })
+  .catch(() => {});
 </script>
 </body>
 </html>
