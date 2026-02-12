@@ -32,7 +32,7 @@ function now() { return new Date().toISOString(); }
 // INITIALIZE DATABASE
 // ══════════════════════════════════════════════════════════════
 async function init() {
-  const p = getPool();
+  getPool(); // Ensure pool is initialized
 
   // Test connection
   const client = await pool.connect();
@@ -226,7 +226,11 @@ async function isAdmin(userId) {
 }
 
 // ── Find or create user by email (for Google OAuth) ──
-async function findOrCreateGoogleUser(email, name) {
+async function findOrCreateGoogleUser(data) {
+  const { email, name, type, role } = typeof data === 'string'
+    ? { email: data, name: null, type: 'observer', role: 'Observer' }
+    : data;
+
   // Try to find existing user by email
   let user = await getUserByEmail(email);
   if (user) {
@@ -245,7 +249,7 @@ async function findOrCreateGoogleUser(email, name) {
 
   await pool.query(
     'INSERT INTO users (id, name, role, email, password_hash, color, type, is_default, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-    [id, name || email.split('@')[0], 'Observer', email, hash, color, 'member', 0, now()]
+    [id, name || email.split('@')[0], role || 'Observer', email, hash, color, type || 'member', 0, now()]
   );
 
   return getUser(id);
