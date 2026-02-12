@@ -284,22 +284,33 @@ app.get('/api/auth/config', (req, res) => {
 
 // Google OAuth routes (only if configured)
 if (googleAuthEnabled) {
+  console.log('Google OAuth enabled. Callback URL:', process.env.GOOGLE_CALLBACK_URL || 'using VERCEL_URL fallback');
+  console.log('Client ID starts with:', process.env.GOOGLE_CLIENT_ID?.substring(0, 15) + '...');
+
   app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-  app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login.html?error=auth_failed' }),
-    async (req, res) => {
-      // Successful authentication, redirect to app
-      req.session.userId = req.user.id;
+  app.get('/auth/google/callback', (req, res, next) => {
+    passport.authenticate('google', async (err, user, info) => {
+      if (err) {
+        console.error('Google OAuth error:', err.message || err);
+        console.error('Error details:', JSON.stringify({ name: err.name, code: err.code, oauthError: err.oauthError, statusCode: err.statusCode }));
+        return res.redirect('/login.html?error=auth_failed&detail=' + encodeURIComponent(err.message || 'unknown'));
+      }
+      if (!user) {
+        console.error('Google OAuth: no user returned. Info:', JSON.stringify(info));
+        return res.redirect('/login.html?error=auth_failed&detail=no_user');
+      }
+      // Successful authentication
+      req.session.userId = user.id;
       await new Promise((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
+        req.session.save((saveErr) => {
+          if (saveErr) reject(saveErr);
           else resolve();
         });
       });
       res.redirect('/app.html');
-    }
-  );
+    })(req, res, next);
+  });
 } else {
   app.get('/auth/google', (req, res) => {
     res.redirect('/login.html?error=auth_failed');
