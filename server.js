@@ -471,6 +471,27 @@ app.delete('/api/clients/:id', requireLogin, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════
+// STEP NAME LOOKUP (maps step IDs like "p1s3" to readable names)
+// ══════════════════════════════════════════════════════════════
+const STEP_NAMES = {
+  p1s1: 'Lead Qualification', p1s2: 'Discovery Call', p1s3: 'Follow-Up & Demo Scheduling',
+  p1s4: 'Tailored Product Demo', p1s5: 'Proposal & Objection Handling', p1s6: 'Contract Signed & Deal Closed',
+  g1: 'GATE 1: Sales → Onboarding',
+  p2s1: 'Welcome Email & Info Packet', p2s2: 'Onboarding Kick-Off Call', p2s3: 'Technology Stack Inventory',
+  p2s4: 'API Credentials & Access', p2s5: 'Workflow & Contract Docs', p2s6: 'Agent Roster Collection',
+  p2s7: 'Data Migration Planning', p2s8: 'Data Package Assembly', p2s9: 'Pre-Config Internal Sync',
+  p2s10: 'Data Package Handoff',
+  g2: 'GATE 2: Onboarding → Technical',
+  p3s1: 'Tenant Creation & Provisioning', p3s2: 'Workflow & Field Configuration', p3s3: 'Integration Setup',
+  p3s4: 'Internal Testing & QA', g3: 'GATE 3: Config → UAT', p3s5: 'Client UAT',
+  g4: 'GATE 4: UAT → Training', p3s6: 'Training Sessions', g5: 'GATE 5: Training → Go-Live',
+  p3s7: 'GO-LIVE & Supported Launch', p3s8: 'Agent Adoption Tracking', p3s9: 'Post-Launch Support',
+  p3s10: 'ROI & Success Metrics Review',
+  g6: 'GATE 6: Go-Live → Steady-State'
+};
+function stepName(id) { return STEP_NAMES[id] || id; }
+
+// ══════════════════════════════════════════════════════════════
 // STEP ROUTES
 // ══════════════════════════════════════════════════════════════
 
@@ -492,7 +513,7 @@ app.put('/api/clients/:clientId/steps/:stepId', requireLogin, async (req, res) =
     await db.createActivity({
       clientId: req.params.clientId,
       userId: req.session.userId,
-      action: `marked "${req.params.stepId}" as ${status.replace('_', ' ')}`,
+      action: `marked "${stepName(req.params.stepId)}" as ${status.replace('_', ' ')}`,
       details: ''
     });
     res.json(result);
@@ -520,7 +541,7 @@ app.put('/api/clients/:clientId/steps/:stepId/note', requireLogin, async (req, r
       await db.createActivity({
         clientId: req.params.clientId,
         userId: req.session.userId,
-        action: `added note to "${req.params.stepId}"`,
+        action: `added note to "${stepName(req.params.stepId)}"`,
         details: (note || '').substring(0, 80)
       });
     }
@@ -550,7 +571,7 @@ app.post('/api/clients/:clientId/steps/:stepId/links', requireLogin, async (req,
     await db.createActivity({
       clientId: req.params.clientId,
       userId: req.session.userId,
-      action: `attached link to "${req.params.stepId}"`,
+      action: `attached link to "${stepName(req.params.stepId)}"`,
       details: (label || url).substring(0, 80)
     });
     res.json(link);
@@ -694,7 +715,7 @@ app.get('/api/backup/export-xlsx', requireLogin, async (req, res) => {
       for (const [stepId, stepData] of Object.entries(steps)) {
         stepRows.push({
           'Company': c.company || '',
-          'Step ID': stepId,
+          'Step': stepName(stepId),
           'Status': (stepData.status || 'pending').replace('_', ' '),
           'Note': stepData.note || '',
           'Completed Date': stepData.completedDate || stepData.completed_date || '',
@@ -703,7 +724,7 @@ app.get('/api/backup/export-xlsx', requireLogin, async (req, res) => {
       }
     }
     const wsSteps = XLSX.utils.json_to_sheet(stepRows.length ? stepRows : [{ 'Company': '(no data)' }]);
-    wsSteps['!cols'] = [{ wch: 25 }, { wch: 12 }, { wch: 14 }, { wch: 40 }, { wch: 20 }, { wch: 15 }];
+    wsSteps['!cols'] = [{ wch: 25 }, { wch: 35 }, { wch: 14 }, { wch: 40 }, { wch: 20 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, wsSteps, 'Checklist');
 
     // ── Team Sheet ──
