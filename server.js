@@ -806,6 +806,39 @@ app.get('/api/portal/me', requireLogin, async (req, res) => {
   }
 });
 
+// Client responds to an action request from their portal
+app.post('/api/portal/respond', requireLogin, async (req, res) => {
+  try {
+    const user = await db.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: 'User not found' });
+    const client = await db.getClientByContactEmail(user.email);
+    if (!client) return res.status(404).json({ message: 'No client record found' });
+    const { stepId, response } = req.body;
+    if (!stepId || typeof stepId !== 'string') return res.status(400).json({ message: 'Step ID required' });
+    if (!response || typeof response !== 'string' || response.trim().length === 0) {
+      return res.status(400).json({ message: 'Response text required' });
+    }
+    if (response.length > 1000) return res.status(400).json({ message: 'Response must be under 1000 characters' });
+    // Verify the step actually has an action note
+    const stepData = client.steps[stepId];
+    if (!stepData || !stepData.clientActionNote) {
+      return res.status(400).json({ message: 'No action request on this step' });
+    }
+    const result = await db.setClientActionResponse(client.id, stepId, response.trim());
+    // Log activity
+    await db.createActivity({
+      clientId: client.id,
+      userId: null,
+      action: `client responded to action on "${stepName(stepId)}"`,
+      details: (response.trim()).substring(0, 80)
+    });
+    res.json({ success: true, ...result });
+  } catch (e) {
+    console.error('Portal respond error:', e);
+    safeError(res, 500, 'Failed to save response');
+  }
+});
+
 // ══════════════════════════════════════════════════════════════
 // BACKUP ROUTES
 // ══════════════════════════════════════════════════════════════

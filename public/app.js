@@ -223,9 +223,11 @@ function showToast(msg, type='info') {
 function ensureSteps(client) {
   if (!client.steps) client.steps = {};
   ALL_CHECKPOINTS.forEach(cp => {
-    if (!client.steps[cp.id]) client.steps[cp.id] = { status:'pending', note:'', links:[], completedDate:null, completedBy:null, clientActionNote:'' };
+    if (!client.steps[cp.id]) client.steps[cp.id] = { status:'pending', note:'', links:[], completedDate:null, completedBy:null, clientActionNote:'', clientActionResponse:'', clientActionRespondedAt:null };
     if (!client.steps[cp.id].links) client.steps[cp.id].links = [];
     if (client.steps[cp.id].clientActionNote === undefined) client.steps[cp.id].clientActionNote = '';
+    if (client.steps[cp.id].clientActionResponse === undefined) client.steps[cp.id].clientActionResponse = '';
+    if (client.steps[cp.id].clientActionRespondedAt === undefined) client.steps[cp.id].clientActionRespondedAt = null;
   });
   return client;
 }
@@ -591,6 +593,7 @@ function renderDetail() {
           <div class="step-desc-text">${esc(item.desc)}</div>
           ${st.note?'<div style="margin-top:4px;padding:6px 8px;background:var(--amber-light);border-radius:6px;font-size:11px;color:#6d4c00"><strong>Note:</strong> '+esc(st.note)+'</div>':''}
           ${st.clientActionNote?'<div style="margin-top:4px;padding:6px 8px;background:#fff3e0;border:1.5px solid #ffb74d;border-radius:6px;font-size:11px;color:#e65100;display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span><strong>Client Action:</strong> '+esc(st.clientActionNote)+'</span></div>':''}
+          ${(st.clientActionNote && st.clientActionResponse)?'<div style="margin-top:4px;padding:6px 8px;background:#e8f0ec;border:1.5px solid #4B876C;border-radius:6px;font-size:11px;color:#1a3a2a;display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4B876C" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span><strong>Client Response:</strong> '+esc(st.clientActionResponse)+'<span style="color:var(--muted);font-size:10px;margin-left:6px">'+(st.clientActionRespondedAt?fmtDateTime(st.clientActionRespondedAt):'')+'</span></span></div>':''}
           ${linksHtml}
         </div>
         <div class="step-actions">

@@ -105,6 +105,14 @@ async function init() {
     // Column may already exist, ignore
   }
 
+  // Migration: add client response columns (for client replies to action requests)
+  try {
+    await pool.query(`ALTER TABLE client_steps ADD COLUMN IF NOT EXISTS client_action_response TEXT DEFAULT ''`);
+  } catch (e) {}
+  try {
+    await pool.query(`ALTER TABLE client_steps ADD COLUMN IF NOT EXISTS client_action_responded_at TEXT`);
+  } catch (e) {}
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS activities (
       id TEXT PRIMARY KEY,
@@ -517,7 +525,7 @@ async function deleteClient(id) {
 // ══════════════════════════════════════════════════════════════
 async function getClientSteps(clientId) {
   const result = await pool.query(
-    'SELECT step_id, status, note, links, completed_date, completed_by, client_action_note FROM client_steps WHERE client_id = $1',
+    'SELECT step_id, status, note, links, completed_date, completed_by, client_action_note, client_action_response, client_action_responded_at FROM client_steps WHERE client_id = $1',
     [clientId]
   );
 
@@ -531,7 +539,9 @@ async function getClientSteps(clientId) {
       links: links,
       completedDate: row.completed_date,
       completedBy: row.completed_by,
-      clientActionNote: row.client_action_note || ''
+      clientActionNote: row.client_action_note || '',
+      clientActionResponse: row.client_action_response || '',
+      clientActionRespondedAt: row.client_action_responded_at || null
     };
   }
 
@@ -584,6 +594,22 @@ async function setClientActionNote(clientId, stepId, note) {
   }
   await pool.query('UPDATE clients SET updated_at = $1 WHERE id = $2', [ts, clientId]);
   return { stepId, clientActionNote: note || '' };
+}
+
+async function setClientActionResponse(clientId, stepId, response) {
+  const ts = now();
+  const result = await pool.query(
+    'SELECT step_id FROM client_steps WHERE client_id = $1 AND step_id = $2',
+    [clientId, stepId]
+  );
+  if (result.rows.length > 0) {
+    await pool.query(
+      'UPDATE client_steps SET client_action_response = $1, client_action_responded_at = $2, updated_at = $3 WHERE client_id = $4 AND step_id = $5',
+      [response || '', ts, ts, clientId, stepId]
+    );
+  }
+  await pool.query('UPDATE clients SET updated_at = $1 WHERE id = $2', [ts, clientId]);
+  return { stepId, clientActionResponse: response || '', clientActionRespondedAt: ts };
 }
 
 async function addStepLink(clientId, stepId, link) {
@@ -888,6 +914,7 @@ module.exports = {
   addStepLink,
   removeStepLink,
   setClientActionNote,
+  setClientActionResponse,
   createActivity,
   getActivities,
   clearActivities,
