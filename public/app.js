@@ -256,8 +256,18 @@ function phaseProgress(client, phaseId) {
   const done = ids.filter(id => (c.steps[id] || {}).status === 'completed').length;
   return { done, total: ids.length, pct: ids.length ? Math.round((done/ids.length)*100) : 0 };
 }
-function userName(id) { const u = state.team.find(t => t.id === id); return u ? u.name : 'Unknown'; }
-function userColor(id) { const u = state.team.find(t => t.id === id); return u ? u.color : '#999'; }
+function userName(id) {
+  if (!id || id === 'system') return 'System';
+  if (id === 'client') return 'Client';
+  const u = state.team.find(t => t.id === id);
+  return u ? u.name : 'Unknown';
+}
+function userColor(id) {
+  if (!id || id === 'system') return '#607d8b';
+  if (id === 'client') return '#D05F0D';
+  const u = state.team.find(t => t.id === id);
+  return u ? u.color : '#999';
+}
 
 // ══════════════════════════════════════════════════════════════
 // DATA LOADING

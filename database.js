@@ -666,10 +666,12 @@ async function removeStepLink(clientId, stepId, linkId) {
 async function createActivity(data) {
   const id = uid();
   const ts = data.timestamp || now();
+  // user_id is NOT NULL in the schema — use 'system' as fallback for client/automated actions
+  const userId = data.userId || 'system';
 
   await pool.query(
     'INSERT INTO activities (id, client_id, user_id, action, details, timestamp) VALUES ($1, $2, $3, $4, $5, $6)',
-    [id, data.clientId || null, data.userId, data.action, data.details || '', ts]
+    [id, data.clientId || null, userId, data.action, data.details || '', ts]
   );
 
   // Keep max 500 activities

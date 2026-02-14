@@ -741,7 +741,7 @@ app.post('/api/onboarding/:token', onboardingLimiter, async (req, res) => {
 
     // If submitted, log activity and update relevant step
     if (status === 'submitted') {
-      await db.createActivity({ clientId: client.id, userId: null, action: 'submitted onboarding form', details: client.company });
+      await db.createActivity({ clientId: client.id, userId: 'client', action: 'submitted onboarding form', details: client.company });
     }
 
     res.json({ success: true, submission });
@@ -825,10 +825,10 @@ app.post('/api/portal/respond', requireLogin, async (req, res) => {
       return res.status(400).json({ message: 'No action request on this step' });
     }
     const result = await db.setClientActionResponse(client.id, stepId, response.trim());
-    // Log activity
+    // Log activity — use actual logged-in user's ID
     await db.createActivity({
       clientId: client.id,
-      userId: null,
+      userId: req.session.userId,
       action: `client responded to action on "${stepName(stepId)}"`,
       details: (response.trim()).substring(0, 80)
     });
