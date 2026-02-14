@@ -253,6 +253,8 @@ body.offline .main { margin-top: 30px; }
 .back-btn:hover { color: var(--blue); }
 .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
 @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } .pipeline { grid-template-columns: 1fr; } }
+.export-dropdown-menu { display:none; position:absolute; top:100%; right:0; margin-top:4px; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:100; min-width:160px; overflow:hidden; }
+.export-dropdown-menu.show { display:block; }
 </style>
 </head>
 <body>
@@ -320,14 +322,24 @@ body.offline .main { margin-top: 30px; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input id="search-input" placeholder="Search clients..." oninput="onSearch()" aria-label="Search clients">
       </div>
-      <button class="btn btn-outline btn-sm" onclick="exportData()" aria-label="Export data" title="Export backup">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export
-      </button>
-      <label class="btn btn-outline btn-sm" style="cursor:pointer" title="Import backup">
+      <div style="position:relative;display:inline-block" id="export-dropdown">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('export-menu').classList.toggle('show')" aria-label="Export data" title="Export backup">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export &#9662;
+        </button>
+        <div id="export-menu" class="export-dropdown-menu"
+          <button onclick="exportData('xlsx');document.getElementById('export-menu').classList.remove('show')" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);text-align:left" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">
+            <span style="color:#2e7d32;font-weight:700;font-size:11px">XLSX</span> Export as Excel
+          </button>
+          <button onclick="exportData('json');document.getElementById('export-menu').classList.remove('show')" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);text-align:left;border-top:1px solid var(--border)" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">
+            <span style="color:#ef6c00;font-weight:700;font-size:11px">JSON</span> Export as JSON
+          </button>
+        </div>
+      </div>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer" title="Import backup (.json or .xlsx)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Import
-        <input type="file" accept=".json" style="display:none" onchange="importData(event)" aria-label="Import data">
+        <input type="file" accept=".json,.xlsx" style="display:none" onchange="importData(event)" aria-label="Import data">
       </label>
       <button class="btn btn-primary" onclick="openAddClientModal()" aria-label="Add new client">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -423,6 +435,14 @@ body.offline .main { margin-top: 30px; }
   </div>
 </div>
 
+<script>
+// Close export dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('export-menu');
+  var dd = document.getElementById('export-dropdown');
+  if (menu && dd && !dd.contains(e.target)) menu.classList.remove('show');
+});
+</script>
 <script src="/app.js"></script>
 </body>
 </html>

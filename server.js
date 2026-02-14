@@ -12,7 +12,12 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const passport = require('passport');
+const XLSX = require('xlsx');
+const multer = require('multer');
 const db = require('./database');
+
+// Multer config for XLSX uploads (memory storage, 10MB limit)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -641,7 +646,7 @@ app.delete('/api/activities', requireLogin, async (req, res) => {
 // BACKUP ROUTES
 // ══════════════════════════════════════════════════════════════
 
-// Export backup
+// Export backup (JSON)
 app.get('/api/backup/export', requireLogin, async (req, res) => {
   try {
     const data = await db.exportAll();
@@ -653,7 +658,115 @@ app.get('/api/backup/export', requireLogin, async (req, res) => {
   }
 });
 
-// Import backup
+// Export backup (Excel .xlsx)
+app.get('/api/backup/export-xlsx', requireLogin, async (req, res) => {
+  try {
+    const data = await db.exportAll();
+    const wb = XLSX.utils.book_new();
+
+    // ── Clients Sheet ──
+    const clientRows = (data.clients || []).map(c => ({
+      'Company': c.company || '',
+      'Type': c.type === 'tc_company' ? 'TC Company' : 'Brokerage',
+      'Contact Name': c.contactName || c.contact_name || '',
+      'Contact Email': c.contactEmail || c.contact_email || '',
+      'Scenario': (c.scenario || '').replace(/-/g, ' '),
+      'Sales Lead': c.salesLead || c.sales_lead_id || '',
+      'Onboarding Lead': c.onboardingLead || c.onboarding_lead_id || '',
+      'Txns/Month': c.txns || '',
+      'Target Go-Live': c.targetGoLive || c.target_go_live || '',
+      'Status': (c.status || '').replace('_', ' '),
+      'Notes': c.notes || '',
+      'Created': c.createdAt || c.created_at || ''
+    }));
+    const wsClients = XLSX.utils.json_to_sheet(clientRows.length ? clientRows : [{ 'Company': '(no data)' }]);
+    // Set column widths
+    wsClients['!cols'] = [
+      { wch: 25 }, { wch: 14 }, { wch: 20 }, { wch: 28 }, { wch: 18 },
+      { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 40 }, { wch: 20 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsClients, 'Clients');
+
+    // ── Checklist/Steps Sheet ──
+    const stepRows = [];
+    for (const c of (data.clients || [])) {
+      const steps = c.steps || {};
+      for (const [stepId, stepData] of Object.entries(steps)) {
+        stepRows.push({
+          'Company': c.company || '',
+          'Step ID': stepId,
+          'Status': (stepData.status || 'pending').replace('_', ' '),
+          'Note': stepData.note || '',
+          'Completed Date': stepData.completedDate || stepData.completed_date || '',
+          'Completed By': stepData.completedBy || stepData.completed_by || ''
+        });
+      }
+    }
+    const wsSteps = XLSX.utils.json_to_sheet(stepRows.length ? stepRows : [{ 'Company': '(no data)' }]);
+    wsSteps['!cols'] = [{ wch: 25 }, { wch: 12 }, { wch: 14 }, { wch: 40 }, { wch: 20 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, wsSteps, 'Checklist');
+
+    // ── Team Sheet ──
+    const teamRows = (data.team || []).map(t => ({
+      'Name': t.name || '',
+      'Role': t.role || '',
+      'Email': t.email || '',
+      'Type': t.type || '',
+      'Default': t.isDefault || t.is_default ? 'Yes' : 'No'
+    }));
+    const wsTeam = XLSX.utils.json_to_sheet(teamRows.length ? teamRows : [{ 'Name': '(no data)' }]);
+    wsTeam['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, { wch: 10 }];
+    XLSX.utils.book_append_sheet(wb, wsTeam, 'Team');
+
+    // Build lookup maps for readable names in Activities
+    const userMap = {};
+    for (const t of (data.team || [])) { userMap[t.id] = t.name; }
+    const clientMap = {};
+    for (const c of (data.clients || [])) { clientMap[c.id] = c.company; }
+
+    // Also resolve Sales Lead and Onboarding Lead names in Clients sheet
+    for (const row of clientRows) {
+      if (row['Sales Lead'] && userMap[row['Sales Lead']]) row['Sales Lead'] = userMap[row['Sales Lead']];
+      if (row['Onboarding Lead'] && userMap[row['Onboarding Lead']]) row['Onboarding Lead'] = userMap[row['Onboarding Lead']];
+    }
+    // Rebuild Clients sheet with resolved names
+    const wsClientsResolved = XLSX.utils.json_to_sheet(clientRows.length ? clientRows : [{ 'Company': '(no data)' }]);
+    wsClientsResolved['!cols'] = wsClients['!cols'];
+    wb.Sheets['Clients'] = wsClientsResolved;
+
+    // Also resolve Completed By in Steps sheet
+    for (const row of stepRows) {
+      if (row['Completed By'] && userMap[row['Completed By']]) row['Completed By'] = userMap[row['Completed By']];
+    }
+    const wsStepsResolved = XLSX.utils.json_to_sheet(stepRows.length ? stepRows : [{ 'Company': '(no data)' }]);
+    wsStepsResolved['!cols'] = wsSteps['!cols'];
+    wb.Sheets['Checklist'] = wsStepsResolved;
+
+    // ── Activities Sheet ──
+    const actRows = (data.activities || []).slice(0, 500).map(a => ({
+      'User': userMap[a.user_id] || a.user_id || '',
+      'Action': a.action || '',
+      'Details': a.details || '',
+      'Client': clientMap[a.client_id] || a.client_id || '',
+      'Timestamp': a.timestamp || ''
+    }));
+    const wsAct = XLSX.utils.json_to_sheet(actRows.length ? actRows : [{ 'User': '(no data)' }]);
+    wsAct['!cols'] = [{ wch: 15 }, { wch: 35 }, { wch: 40 }, { wch: 25 }, { wch: 22 }];
+    XLSX.utils.book_append_sheet(wb, wsAct, 'Activities');
+
+    // Generate buffer and send
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const filename = `ReBillion_PM_Backup_${new Date().toISOString().slice(0,10)}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.from(buf));
+  } catch (e) {
+    console.error('Excel export error:', e);
+    safeError(res, 500, 'Excel export failed');
+  }
+});
+
+// Import backup (JSON)
 app.post('/api/backup/import', requireLogin, async (req, res) => {
   try {
     const result = await db.importAll(req.body);
@@ -662,6 +775,78 @@ app.post('/api/backup/import', requireLogin, async (req, res) => {
   } catch (e) {
     console.error('Import error:', e);
     safeError(res, 400, 'Import failed');
+  }
+});
+
+// Import backup (Excel .xlsx)
+app.post('/api/backup/import-xlsx', requireLogin, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+
+    // Parse Clients sheet
+    const clientsSheet = wb.Sheets['Clients'];
+    const clientsRaw = clientsSheet ? XLSX.utils.sheet_to_json(clientsSheet) : [];
+
+    // Parse Team sheet
+    const teamSheet = wb.Sheets['Team'];
+    const teamRaw = teamSheet ? XLSX.utils.sheet_to_json(teamSheet) : [];
+
+    // Parse Activities sheet
+    const actSheet = wb.Sheets['Activities'];
+    const actRaw = actSheet ? XLSX.utils.sheet_to_json(actSheet) : [];
+
+    // Parse Checklist/Steps sheet
+    const stepsSheet = wb.Sheets['Checklist'];
+    const stepsRaw = stepsSheet ? XLSX.utils.sheet_to_json(stepsSheet) : [];
+
+    // Build a steps map grouped by company
+    const stepsMap = {};
+    for (const row of stepsRaw) {
+      const company = row['Company'] || '';
+      if (!stepsMap[company]) stepsMap[company] = {};
+      stepsMap[company][row['Step ID']] = {
+        status: (row['Status'] || 'pending').replace(' ', '_'),
+        note: row['Note'] || '',
+        completedDate: row['Completed Date'] || null,
+        completedBy: row['Completed By'] || null
+      };
+    }
+
+    // Convert to import format
+    const clients = clientsRaw.filter(r => r['Company'] && r['Company'] !== '(no data)').map(r => ({
+      id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 7),
+      company: r['Company'] || '',
+      type: (r['Type'] || '').toLowerCase().includes('tc') ? 'tc_company' : 'brokerage',
+      contactName: r['Contact Name'] || '',
+      contactEmail: r['Contact Email'] || '',
+      scenario: (r['Scenario'] || 'single office').replace(/\s+/g, '-'),
+      salesLead: r['Sales Lead'] || null,
+      onboardingLead: r['Onboarding Lead'] || null,
+      txns: r['Txns/Month'] ? parseInt(r['Txns/Month'], 10) : null,
+      targetGoLive: r['Target Go-Live'] || null,
+      notes: r['Notes'] || '',
+      status: (r['Status'] || 'active').replace(' ', '_'),
+      steps: stepsMap[r['Company']] || {}
+    }));
+
+    const team = teamRaw.filter(r => r['Name'] && r['Name'] !== '(no data)').map(r => ({
+      id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 7),
+      name: r['Name'] || '',
+      role: r['Role'] || 'Observer',
+      email: r['Email'] || '',
+      type: (r['Type'] || 'member').toLowerCase(),
+      isDefault: (r['Default'] || '').toLowerCase() === 'yes'
+    }));
+
+    const importData = { clients, team, activities: [] };
+    const result = await db.importAll(importData);
+    await db.createActivity({ clientId: null, userId: req.session.userId, action: 'imported Excel backup', details: `${result.clients} clients, ${result.team} team members` });
+    res.json({ success: true, imported: result });
+  } catch (e) {
+    console.error('Excel import error:', e);
+    safeError(res, 400, 'Excel import failed: ' + e.message);
   }
 });
 

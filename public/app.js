@@ -963,32 +963,33 @@ function populateTeamSelects() {
 // ══════════════════════════════════════════════════════════════
 // EXPORT / IMPORT
 // ══════════════════════════════════════════════════════════════
-async function exportData() {
+async function exportData(format) {
+  if (!format) format = 'xlsx';
   try {
     if (state.isOffline) {
-      // Export from local cache
+      // Export from local cache as JSON (no Excel generation offline)
       const json = JSON.stringify({ clients: state.clients, team: state.team, activities: state.activities, exportDate: now() }, null, 2);
-      downloadJSON(json);
-    } else {
-      const res = await fetch('/api/backup/export');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'ReBillion_PM_Backup_'+new Date().toISOString().slice(0,10)+'.json';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadFile(new Blob([json], { type:'application/json' }), 'ReBillion_PM_Backup_'+new Date().toISOString().slice(0,10)+'.json');
+      showToast('Backup exported (JSON, offline)','success');
+      return;
     }
-    showToast('Backup exported','success');
+    const endpoint = format === 'xlsx' ? '/api/backup/export-xlsx' : '/api/backup/export';
+    const res = await fetch(endpoint);
+    if (res.status === 401) { window.location.href = '/login.html'; return; }
+    if (!res.ok) { const err = await res.json().catch(() => ({ message: 'Export failed' })); throw new Error(err.message); }
+    const blob = await res.blob();
+    const ext = format === 'xlsx' ? '.xlsx' : '.json';
+    downloadFile(blob, 'ReBillion_PM_Backup_'+new Date().toISOString().slice(0,10)+ext);
+    showToast('Backup exported ('+format.toUpperCase()+')','success');
   } catch(e) {
     showToast('Export failed: '+e.message,'warn');
   }
 }
 
-function downloadJSON(json) {
-  const blob = new Blob([json], { type:'application/json' });
+function downloadFile(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'ReBillion_PM_Backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
@@ -997,29 +998,58 @@ async function importData(event) {
   const file = event.target.files[0];
   if (!file) return;
   if (!confirm('Import will REPLACE all current data. Are you sure?')) { event.target.value=''; return; }
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    try {
-      const parsed = JSON.parse(e.target.result);
-      if (!parsed.clients || !parsed.team) throw new Error('Invalid backup file');
-      if (state.isOffline) {
-        state.clients = parsed.clients.map(ensureSteps);
-        state.team = parsed.team;
-        state.activities = parsed.activities || [];
-        await idbCache.saveState({ clients: state.clients, team: state.team, activities: state.activities, currentUser: state.currentUser });
-        showToast('Data imported (offline)','warn');
-      } else {
-        const result = await api.post('/api/backup/import', parsed);
-        await loadAllData();
-        showToast('Data imported successfully','success');
+
+  const isJSON = file.name.endsWith('.json');
+  const isXLSX = file.name.endsWith('.xlsx');
+  if (!isJSON && !isXLSX) {
+    showToast('Please select a .json or .xlsx backup file','warn');
+    event.target.value = '';
+    return;
+  }
+
+  if (isJSON) {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (!parsed.clients || !parsed.team) throw new Error('Invalid backup file');
+        if (state.isOffline) {
+          state.clients = parsed.clients.map(ensureSteps);
+          state.team = parsed.team;
+          state.activities = parsed.activities || [];
+          await idbCache.saveState({ clients: state.clients, team: state.team, activities: state.activities, currentUser: state.currentUser });
+          showToast('Data imported (offline)','warn');
+        } else {
+          await api.post('/api/backup/import', parsed);
+          await loadAllData();
+          showToast('Data imported successfully','success');
+        }
+        render();
+      } catch(err) {
+        showToast('Import failed: '+err.message,'warn');
       }
+      event.target.value = '';
+    };
+    reader.readAsText(file);
+  } else {
+    // XLSX import — send binary to server for parsing
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const csrfToken = getCSRFToken();
+      const headers = {};
+      if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+      const res = await fetch('/api/backup/import-xlsx', { method: 'POST', headers, body: formData });
+      if (res.status === 401) { window.location.href = '/login.html'; return; }
+      if (!res.ok) { const err = await res.json().catch(() => ({ message: 'Import failed' })); throw new Error(err.message); }
+      await loadAllData();
       render();
+      showToast('Excel data imported successfully','success');
     } catch(err) {
       showToast('Import failed: '+err.message,'warn');
     }
     event.target.value = '';
-  };
-  reader.readAsText(file);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
