@@ -98,6 +98,13 @@ async function init() {
     // Column may already exist, ignore
   }
 
+  // Migration: add client_action_note column (for client-facing action requests)
+  try {
+    await pool.query(`ALTER TABLE client_steps ADD COLUMN IF NOT EXISTS client_action_note TEXT DEFAULT ''`);
+  } catch (e) {
+    // Column may already exist, ignore
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS activities (
       id TEXT PRIMARY KEY,
@@ -510,7 +517,7 @@ async function deleteClient(id) {
 // ══════════════════════════════════════════════════════════════
 async function getClientSteps(clientId) {
   const result = await pool.query(
-    'SELECT step_id, status, note, links, completed_date, completed_by FROM client_steps WHERE client_id = $1',
+    'SELECT step_id, status, note, links, completed_date, completed_by, client_action_note FROM client_steps WHERE client_id = $1',
     [clientId]
   );
 
@@ -523,7 +530,8 @@ async function getClientSteps(clientId) {
       note: row.note || '',
       links: links,
       completedDate: row.completed_date,
-      completedBy: row.completed_by
+      completedBy: row.completed_by,
+      clientActionNote: row.client_action_note || ''
     };
   }
 
@@ -553,6 +561,29 @@ async function upsertStep(clientId, stepId, data) {
   await pool.query('UPDATE clients SET updated_at = $1 WHERE id = $2', [ts, clientId]);
 
   return { stepId, status: data.status, note: data.note || '', links: [], completedDate, completedBy };
+}
+
+async function setClientActionNote(clientId, stepId, note) {
+  const ts = now();
+  // Check if step row exists
+  const result = await pool.query(
+    'SELECT step_id FROM client_steps WHERE client_id = $1 AND step_id = $2',
+    [clientId, stepId]
+  );
+  if (result.rows.length > 0) {
+    await pool.query(
+      'UPDATE client_steps SET client_action_note = $1, updated_at = $2 WHERE client_id = $3 AND step_id = $4',
+      [note || '', ts, clientId, stepId]
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO client_steps (client_id, step_id, status, note, links, client_action_note, completed_date, completed_by, updated_at)
+       VALUES ($1, $2, 'pending', '', '[]', $3, NULL, NULL, $4)`,
+      [clientId, stepId, note || '', ts]
+    );
+  }
+  await pool.query('UPDATE clients SET updated_at = $1 WHERE id = $2', [ts, clientId]);
+  return { stepId, clientActionNote: note || '' };
 }
 
 async function addStepLink(clientId, stepId, link) {
@@ -856,6 +887,7 @@ module.exports = {
   upsertStep,
   addStepLink,
   removeStepLink,
+  setClientActionNote,
   createActivity,
   getActivities,
   clearActivities,

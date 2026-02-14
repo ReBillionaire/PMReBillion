@@ -595,6 +595,33 @@ app.post('/api/clients/:clientId/steps/:stepId/links', requireLogin, async (req,
   }
 });
 
+// Set/clear client action note on a step
+app.put('/api/clients/:clientId/steps/:stepId/client-action', requireLogin, async (req, res) => {
+  try {
+    const client = await db.getClient(req.params.clientId);
+    if (!client) return res.status(404).json({ message: 'Client not found' });
+    const { note } = req.body;
+    if (note && typeof note === 'string' && note.length > 500) {
+      return res.status(400).json({ message: 'Action note must be under 500 characters' });
+    }
+    const result = await db.setClientActionNote(req.params.clientId, req.params.stepId, note || '');
+    // Log activity
+    const actionText = note
+      ? `requested client action on "${stepName(req.params.stepId)}"`
+      : `cleared client action on "${stepName(req.params.stepId)}"`;
+    await db.createActivity({
+      clientId: req.params.clientId,
+      userId: req.session.userId,
+      action: actionText,
+      details: (note || '').substring(0, 80)
+    });
+    res.json(result);
+  } catch (e) {
+    console.error('Set client action error:', e);
+    safeError(res, 500, 'Failed to set client action');
+  }
+});
+
 // Remove link from step
 app.delete('/api/clients/:clientId/steps/:stepId/links/:linkId', requireLogin, async (req, res) => {
   try {

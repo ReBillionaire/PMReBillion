@@ -203,7 +203,7 @@ let state = {
   clients: [], team: [], activities: [],
   currentUser: null, // { id, name, role, email, color }
   currentView: 'dashboard', detailClientId: null,
-  editingClientId: null, noteTarget: null, linkTarget: null,
+  editingClientId: null, noteTarget: null, linkTarget: null, clientActionTarget: null,
   previousView: 'dashboard', searchTerm: '',
   isOffline: false
 };
@@ -223,8 +223,9 @@ function showToast(msg, type='info') {
 function ensureSteps(client) {
   if (!client.steps) client.steps = {};
   ALL_CHECKPOINTS.forEach(cp => {
-    if (!client.steps[cp.id]) client.steps[cp.id] = { status:'pending', note:'', links:[], completedDate:null, completedBy:null };
+    if (!client.steps[cp.id]) client.steps[cp.id] = { status:'pending', note:'', links:[], completedDate:null, completedBy:null, clientActionNote:'' };
     if (!client.steps[cp.id].links) client.steps[cp.id].links = [];
+    if (client.steps[cp.id].clientActionNote === undefined) client.steps[cp.id].clientActionNote = '';
   });
   return client;
 }
@@ -589,6 +590,7 @@ function renderDetail() {
           <div class="step-name">${esc(item.name)}${item.isNew?' <span style="background:var(--purple);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700">NEW</span>':''}${st.status==='completed'?'<span style="font-size:10px;color:var(--green);margin-left:6px">'+esc(completedInfo)+'</span>':''}</div>
           <div class="step-desc-text">${esc(item.desc)}</div>
           ${st.note?'<div style="margin-top:4px;padding:6px 8px;background:var(--amber-light);border-radius:6px;font-size:11px;color:#6d4c00"><strong>Note:</strong> '+esc(st.note)+'</div>':''}
+          ${st.clientActionNote?'<div style="margin-top:4px;padding:6px 8px;background:#fff3e0;border:1.5px solid #ffb74d;border-radius:6px;font-size:11px;color:#e65100;display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span><strong>Client Action:</strong> '+esc(st.clientActionNote)+'</span></div>':''}
           ${linksHtml}
         </div>
         <div class="step-actions">
@@ -601,6 +603,9 @@ function renderDetail() {
           </button>
           <button class="step-notes-btn ${links.length?'has-note':''}" onclick="event.stopPropagation();openLinkModal('${esc(c.id)}','${esc(item.id)}')" title="${links.length?links.length+' link(s)':'Attach link'}" style="${links.length?'color:#4B876C':''}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          </button>
+          <button class="step-notes-btn ${st.clientActionNote?'has-note':''}" onclick="event.stopPropagation();openClientActionModal('${esc(c.id)}','${esc(item.id)}')" title="${st.clientActionNote?'Edit client action request':'Request client action'}" style="${st.clientActionNote?'color:#e65100':''}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           </button>
         </div>
       </div>`;
@@ -777,6 +782,60 @@ async function removeLink(clientId, stepId, linkId) {
   } catch(e) {
     await idbCache.queueAction({ type: 'remove_link', data: { clientId, stepId, linkId } });
   }
+  await idbCache.saveState({ clients: state.clients, team: state.team, activities: state.activities, currentUser: state.currentUser });
+}
+
+// ── Client Action Request ──
+function openClientActionModal(clientId, stepId) {
+  const c = state.clients.find(cl => cl.id===clientId);
+  if (!c) { showToast('Client not found','warn'); return; }
+  state.clientActionTarget = { clientId, stepId };
+  const si = ALL_CHECKPOINTS.find(ch => ch.id===stepId);
+  document.getElementById('modal-client-action-title').textContent = 'Request Client Action: '+(si?.name||stepId);
+  document.getElementById('fca-note').value = (c.steps[stepId] || {}).clientActionNote || '';
+  openModal('modal-client-action');
+  setTimeout(() => document.getElementById('fca-note').focus(), 100);
+}
+
+async function saveClientAction() {
+  if (!state.clientActionTarget) return;
+  const { clientId, stepId } = state.clientActionTarget;
+  const c = state.clients.find(cl => cl.id===clientId);
+  if (!c) { showToast('Client was deleted','warn'); closeModal('modal-client-action'); return; }
+  const note = document.getElementById('fca-note').value.trim();
+  if (!note) { showToast('Please enter an action note','warn'); return; }
+  closeModal('modal-client-action');
+  // Optimistic update
+  if (!c.steps[stepId]) c.steps[stepId] = { status:'pending', note:'', links:[], completedDate:null, completedBy:null, clientActionNote:'' };
+  c.steps[stepId].clientActionNote = note;
+  render();
+  showToast('Client action request sent','success');
+  try {
+    if (state.isOffline) throw new Error('offline');
+    await api.put(`/api/clients/${clientId}/steps/${stepId}/client-action`, { note });
+    const actRes = await api.get('/api/activities?limit=20');
+    state.activities = actRes.activities || [];
+  } catch(e) {
+    if (!state.isOffline) showToast('Action request saved locally','warn');
+  }
+  await idbCache.saveState({ clients: state.clients, team: state.team, activities: state.activities, currentUser: state.currentUser });
+}
+
+async function clearClientAction() {
+  if (!state.clientActionTarget) return;
+  const { clientId, stepId } = state.clientActionTarget;
+  const c = state.clients.find(cl => cl.id===clientId);
+  if (!c) { closeModal('modal-client-action'); return; }
+  closeModal('modal-client-action');
+  if (c.steps[stepId]) c.steps[stepId].clientActionNote = '';
+  render();
+  showToast('Client action cleared','info');
+  try {
+    if (state.isOffline) throw new Error('offline');
+    await api.put(`/api/clients/${clientId}/steps/${stepId}/client-action`, { note: '' });
+    const actRes = await api.get('/api/activities?limit=20');
+    state.activities = actRes.activities || [];
+  } catch(e) {}
   await idbCache.saveState({ clients: state.clients, team: state.team, activities: state.activities, currentUser: state.currentUser });
 }
 

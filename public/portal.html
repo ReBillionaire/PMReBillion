@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ReBillion.ai — Client Portal</title>
 <style>
-:root { --dark: #1a3a2a; --primary: #4B876C; --primary-light: #e8f0ec; --accent: #D05F0D; --text: #1a2a2a; --muted: #607d8b; --bg: #f0f5f2; --card: #fff; --border: #d4e0d8; --red: #c62828; --amber: #f57f17; --green: #2e7d32; }
+:root { --dark: #1a3a2a; --primary: #4B876C; --primary-light: #e8f0ec; --accent: #D05F0D; --text: #1a2a2a; --muted: #607d8b; --bg: #f0f5f2; --card: #fff; --border: #d4e0d8; --red: #c62828; --amber: #f57f17; --yellow: #f9a825; --green: #2e7d32; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); }
 .header { background: var(--dark); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
@@ -41,12 +41,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .step-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; }
 .step-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; }
 .step-icon.completed { background: var(--green); color: #fff; }
-.step-icon.in_progress { background: var(--accent); color: #fff; }
+.step-icon.in_progress { background: var(--yellow); color: #fff; }
 .step-icon.blocked { background: var(--red); color: #fff; }
 .step-icon.pending { background: var(--border); color: var(--muted); }
 .step-name { flex: 1; }
 .step-name.completed { color: var(--muted); text-decoration: line-through; }
 .step-status { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.client-action-banner { margin-top: 6px; padding: 8px 12px; background: #fff3e0; border: 1.5px solid #ffb74d; border-radius: 8px; font-size: 12px; color: #e65100; display: flex; align-items: flex-start; gap: 8px; }
+.client-action-banner svg { flex-shrink: 0; margin-top: 1px; }
+.client-action-banner .action-label { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }
+.client-action-banner .action-note { font-weight: 500; }
 .onboarding-cta { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--primary-light); border-radius: 10px; border: 1.5px solid var(--primary); }
 .onboarding-cta .cta-text { flex: 1; }
 .onboarding-cta .cta-text h4 { font-size: 14px; margin-bottom: 2px; }
@@ -93,33 +97,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div>
 
 <script>
+// Client portal only shows Phase 2 (Onboarding) and Phase 3 (Setup) — Phase 1 (Sales) is internal only
 const PHASES = [
-  { id:'phase1', name:'Sales & Discovery', color:'#4B876C',
-    steps: [
-      { id:'p1s1', name:'Lead Qualification' }, { id:'p1s2', name:'Discovery Call' },
-      { id:'p1s3', name:'Follow-Up & Demo Scheduling' }, { id:'p1s4', name:'Tailored Product Demo' },
-      { id:'p1s5', name:'Proposal & Objection Handling' }, { id:'p1s6', name:'Contract Signed & Deal Closed' }
-    ], gate: { id:'g1', name:'GATE 1: Sales to Onboarding' }
-  },
-  { id:'phase2', name:'Data Collection & Gathering', color:'#00838f',
+  { id:'phase2', name:'Onboarding & Data Collection', color:'#00838f',
     steps: [
       { id:'p2s1', name:'Welcome Email & Info Packet' }, { id:'p2s2', name:'Onboarding Kick-Off Call' },
       { id:'p2s3', name:'Technology Stack Inventory' }, { id:'p2s4', name:'API Credentials & Access' },
       { id:'p2s5', name:'Workflow & Contract Docs' }, { id:'p2s6', name:'Agent Roster Collection' },
       { id:'p2s7', name:'Data Migration Planning' }, { id:'p2s8', name:'Data Package Assembly' },
       { id:'p2s9', name:'Pre-Config Internal Sync' }, { id:'p2s10', name:'Data Package Handoff' }
-    ], gate: { id:'g2', name:'GATE 2: Onboarding to Technical' }
+    ], gate: { id:'g2', name:'GATE: Onboarding Complete' }
   },
-  { id:'phase3', name:'Config, Setup & Handover', color:'#2e7d32',
+  { id:'phase3', name:'Configuration, Setup & Go-Live', color:'#2e7d32',
     steps: [
       { id:'p3s1', name:'Tenant Creation & Provisioning' }, { id:'p3s2', name:'Workflow & Field Configuration' },
       { id:'p3s3', name:'Integration Setup' }, { id:'p3s4', name:'Internal Testing & QA' },
-      { id:'g3', name:'GATE 3: Config to UAT', isGate:true }, { id:'p3s5', name:'Client UAT' },
-      { id:'g4', name:'GATE 4: UAT to Training', isGate:true }, { id:'p3s6', name:'Training Sessions' },
-      { id:'g5', name:'GATE 5: Training to Go-Live', isGate:true }, { id:'p3s7', name:'GO-LIVE & Supported Launch' },
+      { id:'g3', name:'GATE: Ready for UAT', isGate:true }, { id:'p3s5', name:'Client UAT' },
+      { id:'g4', name:'GATE: Ready for Training', isGate:true }, { id:'p3s6', name:'Training Sessions' },
+      { id:'g5', name:'GATE: Ready for Go-Live', isGate:true }, { id:'p3s7', name:'GO-LIVE & Supported Launch' },
       { id:'p3s8', name:'Agent Adoption Tracking' }, { id:'p3s9', name:'Post-Launch Support' },
       { id:'p3s10', name:'ROI & Success Metrics Review' }
-    ], gate: { id:'g6', name:'GATE 6: Go-Live to Steady-State' }
+    ], gate: { id:'g6', name:'GATE: Onboarding Complete & Steady-State' }
   }
 ];
 
@@ -218,12 +216,18 @@ function renderPortal() {
     html += '<div class="phase-section"><div class="phase-header"><div class="phase-dot" style="background:' + phase.color + '"></div><h4>' + esc(phase.name) + '</h4><span class="phase-count">' + phaseCompleted + '/' + phaseSteps.length + '</span></div>';
     html += '<ul class="step-list">';
     phaseSteps.forEach(step => {
-      const st = (steps[step.id] || {}).status || 'pending';
+      const stepData = steps[step.id] || {};
+      const st = stepData.status || 'pending';
+      const clientActionNote = stepData.clientActionNote || '';
       const iconClass = st;
       const icon = st === 'completed' ? '&#10003;' : st === 'in_progress' ? '&#9679;' : st === 'blocked' ? '!' : '&ndash;';
       const nameClass = st === 'completed' ? ' completed' : '';
-      const statusColor = st === 'completed' ? 'var(--green)' : st === 'in_progress' ? 'var(--accent)' : st === 'blocked' ? 'var(--red)' : 'var(--muted)';
-      html += '<li class="step-item"><div class="step-icon ' + iconClass + '">' + icon + '</div><span class="step-name' + nameClass + '">' + esc(step.name) + '</span><span class="step-status" style="color:' + statusColor + '">' + st.replace('_', ' ') + '</span></li>';
+      const statusColor = st === 'completed' ? 'var(--green)' : st === 'in_progress' ? 'var(--yellow)' : st === 'blocked' ? 'var(--red)' : 'var(--muted)';
+      html += '<li class="step-item"><div style="display:flex;align-items:center;gap:10px;width:100%"><div class="step-icon ' + iconClass + '">' + icon + '</div><div style="flex:1"><div style="display:flex;align-items:center;justify-content:space-between"><span class="step-name' + nameClass + '">' + esc(step.name) + '</span><span class="step-status" style="color:' + statusColor + '">' + st.replace('_', ' ') + '</span></div>';
+      if (clientActionNote) {
+        html += '<div class="client-action-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><div><span class="action-label">Action Required</span><span class="action-note">' + esc(clientActionNote) + '</span></div></div>';
+      }
+      html += '</div></div></li>';
     });
     html += '</ul></div>';
   });
