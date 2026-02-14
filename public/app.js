@@ -629,10 +629,16 @@ function renderDetail() {
         </div>
       </div>
       <div class="detail-header-right">
+        <button class="btn btn-sm btn-outline" onclick="generateOnboardingLink('${esc(c.id)}')" title="Generate & copy onboarding form link">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          ${c.onboardingToken ? 'Copy Form Link' : 'Get Form Link'}
+        </button>
+        ${c.googleDriveUrl ? '<a href="'+esc(c.googleDriveUrl)+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none" title="Open Google Drive folder"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> Drive</a>' : ''}
         <button class="btn btn-sm btn-outline" onclick="openEditClientModal('${esc(c.id)}')">Edit</button>
         <select class="btn btn-outline" style="font-size:12px;cursor:pointer" onchange="updateClientStatus('${esc(c.id)}',this.value)">${statusOpts}</select>
       </div>
     </div>
+    ${c.onboardingStatus === 'submitted' ? '<div style="margin:12px 0;padding:10px 16px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;font-size:13px;color:#2e7d32;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Onboarding form submitted</div>' : c.onboardingStatus === 'in_progress' ? '<div style="margin:12px 0;padding:10px 16px;background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;font-size:13px;color:#e65100;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Onboarding form in progress</div>' : ''}
     <div class="detail-progress mb-lg"><div class="detail-progress-bar-wrap"><div class="detail-progress-bar" style="width:${prog.pct}%"></div></div><div class="detail-progress-text"><span>${prog.done} of ${prog.total} steps completed</span><span>${prog.pct}%</span></div></div>
     ${PHASES.map(p => buildPhaseBlock(p)).join('')}
     ${c.notes?'<div class="card" style="margin-top:20px"><div class="card-header"><h3>Client Notes</h3></div><div class="card-body"><p class="text-sm">'+esc(c.notes)+'</p></div></div>':''}`;
@@ -799,6 +805,31 @@ async function deleteClient(id) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ONBOARDING LINK
+// ══════════════════════════════════════════════════════════════
+async function generateOnboardingLink(clientId) {
+  const c = state.clients.find(cl => cl.id===clientId);
+  if (!c) return;
+  if (c.onboardingToken) {
+    // Already has a token, just copy the link
+    const url = window.location.origin + '/onboarding.html?token=' + c.onboardingToken;
+    await navigator.clipboard.writeText(url);
+    showToast('Onboarding link copied!','success');
+    return;
+  }
+  try {
+    const result = await api.post(`/api/clients/${clientId}/onboarding-token`, {});
+    c.onboardingToken = result.token;
+    const url = result.url || (window.location.origin + '/onboarding.html?token=' + result.token);
+    await navigator.clipboard.writeText(url);
+    showToast('Onboarding link generated & copied!','success');
+    render();
+  } catch(e) {
+    showToast('Failed to generate link: '+e.message,'warn');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // MODALS
 // ══════════════════════════════════════════════════════════════
 function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -808,7 +839,7 @@ function openAddClientModal() {
   state.editingClientId = null;
   document.getElementById('modal-client-title').textContent = 'Add New Client';
   document.getElementById('btn-save-client').textContent = 'Save Client';
-  ['f-company','f-contact','f-email','f-txns','f-notes'].forEach(id => document.getElementById(id).value = '');
+  ['f-company','f-contact','f-email','f-txns','f-notes','f-drive-url'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-golive').value = '';
   document.getElementById('f-type').value = 'brokerage';
   document.getElementById('f-scenario').value = 'single-office';
@@ -831,6 +862,7 @@ function openEditClientModal(id) {
   document.getElementById('f-txns').value = c.txns || '';
   document.getElementById('f-golive').value = c.targetGoLive || '';
   document.getElementById('f-notes').value = c.notes || '';
+  document.getElementById('f-drive-url').value = c.googleDriveUrl || '';
   clearFormErrors();
   populateTeamSelects();
   setTimeout(() => {
@@ -867,7 +899,8 @@ async function saveClient() {
     salesLead: document.getElementById('f-sales').value || null,
     onboardingLead: document.getElementById('f-onboarding').value || null,
     txns, targetGoLive: document.getElementById('f-golive').value || null,
-    notes: document.getElementById('f-notes').value.trim()
+    notes: document.getElementById('f-notes').value.trim(),
+    googleDriveUrl: document.getElementById('f-drive-url').value.trim()
   };
 
   closeModal('modal-client');

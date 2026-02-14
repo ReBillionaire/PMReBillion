@@ -109,11 +109,29 @@ async function init() {
     )
   `);
 
+  // Onboarding submissions table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_submissions (
+      id TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL,
+      form_data TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'not_started',
+      submitted_at TEXT,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  // Migration: add onboarding columns to clients if missing
+  try { await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS onboarding_token TEXT`); } catch(e) {}
+  try { await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS onboarding_status TEXT DEFAULT 'not_started'`); } catch(e) {}
+  try { await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS google_drive_url TEXT DEFAULT ''`); } catch(e) {}
+
   // Create indices
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_steps_client ON client_steps(client_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_activities_client ON activities(client_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_activities_ts ON activities(timestamp DESC)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+  try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_onboarding_token ON clients(onboarding_token) WHERE onboarding_token IS NOT NULL`); } catch(e) {}
 
   // Seed default users if empty
   const result = await pool.query('SELECT COUNT(*) as c FROM users');
@@ -458,7 +476,8 @@ async function updateClient(id, data) {
   const allowed = {
     company: 'company', type: 'type', contactName: 'contact_name', contactEmail: 'contact_email',
     scenario: 'scenario', salesLead: 'sales_lead_id', onboardingLead: 'onboarding_lead_id',
-    txns: 'txns', targetGoLive: 'target_go_live', notes: 'notes', status: 'status'
+    txns: 'txns', targetGoLive: 'target_go_live', notes: 'notes', status: 'status',
+    onboardingToken: 'onboarding_token', onboardingStatus: 'onboarding_status', googleDriveUrl: 'google_drive_url'
   };
 
   for (const [jsKey, dbCol] of Object.entries(allowed)) {
@@ -725,6 +744,55 @@ async function importAll(data) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ONBOARDING QUERIES
+// ══════════════════════════════════════════════════════════════
+async function getClientByToken(token) {
+  if (!token) return null;
+  const result = await pool.query('SELECT * FROM clients WHERE onboarding_token = $1', [token]);
+  if (!result.rows.length) return null;
+  const client = normalizeClient(result.rows[0]);
+  client.steps = await getClientSteps(client.id);
+  return client;
+}
+
+async function generateOnboardingToken(clientId) {
+  const token = crypto.randomBytes(16).toString('hex');
+  await pool.query('UPDATE clients SET onboarding_token = $1, updated_at = $2 WHERE id = $3', [token, now(), clientId]);
+  return token;
+}
+
+async function getOnboardingSubmission(clientId) {
+  const result = await pool.query('SELECT * FROM onboarding_submissions WHERE client_id = $1 ORDER BY updated_at DESC LIMIT 1', [clientId]);
+  if (!result.rows.length) return null;
+  const row = result.rows[0];
+  return { id: row.id, clientId: row.client_id, formData: JSON.parse(row.form_data || '{}'), status: row.status, submittedAt: row.submitted_at, updatedAt: row.updated_at };
+}
+
+async function saveOnboardingSubmission(clientId, formData, status) {
+  const ts = now();
+  const existing = await getOnboardingSubmission(clientId);
+  if (existing) {
+    await pool.query('UPDATE onboarding_submissions SET form_data = $1, status = $2, submitted_at = $3, updated_at = $4 WHERE id = $5',
+      [JSON.stringify(formData), status, status === 'submitted' ? ts : existing.submittedAt, ts, existing.id]);
+  } else {
+    await pool.query('INSERT INTO onboarding_submissions (id, client_id, form_data, status, submitted_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
+      [uid(), clientId, JSON.stringify(formData), status, status === 'submitted' ? ts : null, ts]);
+  }
+  // Update client onboarding status
+  await pool.query('UPDATE clients SET onboarding_status = $1, updated_at = $2 WHERE id = $3', [status, ts, clientId]);
+  return getOnboardingSubmission(clientId);
+}
+
+async function getClientByContactEmail(email) {
+  if (!email) return null;
+  const result = await pool.query('SELECT * FROM clients WHERE LOWER(contact_email) = LOWER($1)', [email]);
+  if (!result.rows.length) return null;
+  const client = normalizeClient(result.rows[0]);
+  client.steps = await getClientSteps(client.id);
+  return client;
+}
+
+// ══════════════════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════════════════
 function rowToUser(row) {
@@ -755,6 +823,9 @@ function normalizeClient(row) {
     notes: row.notes,
     status: row.status,
     steps: row.steps || {},
+    onboardingToken: row.onboarding_token || null,
+    onboardingStatus: row.onboarding_status || 'not_started',
+    googleDriveUrl: row.google_drive_url || '',
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -789,5 +860,10 @@ module.exports = {
   getActivities,
   clearActivities,
   exportAll,
-  importAll
+  importAll,
+  getClientByToken,
+  generateOnboardingToken,
+  getOnboardingSubmission,
+  saveOnboardingSubmission,
+  getClientByContactEmail
 };

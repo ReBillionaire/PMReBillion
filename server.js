@@ -171,10 +171,11 @@ function validateCSRFToken(req, res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
   }
-  // Exempt auth endpoints that don't have a CSRF token yet
+  // Exempt auth endpoints and public onboarding form
   if (req.path === '/api/auth/login' ||
       req.path === '/api/auth/logout' ||
-      req.path === '/auth/google/callback') {
+      req.path === '/auth/google/callback' ||
+      req.path.startsWith('/api/onboarding/')) {
     return next();
   }
   const token = req.headers['x-csrf-token'];
@@ -249,10 +250,10 @@ function validateInputLengths(data) {
   return { valid: true };
 }
 
-// C5: Serve static files (except app.html and app.js which need auth)
+// C5: Serve static files (except app.html, app.js, portal.html which need auth)
 const publicDir = path.join(__dirname, 'public');
 app.use((req, res, next) => {
-  if (req.path === '/app.html' || req.path === '/app.js') {
+  if (req.path === '/app.html' || req.path === '/app.js' || req.path === '/portal.html') {
     return next();
   }
   express.static(publicDir)(req, res, next);
@@ -280,6 +281,11 @@ app.get('/app.html', requireLogin, (req, res) => {
 app.get('/app.js', requireLogin, (req, res) => {
   res.set('Content-Type', 'application/javascript');
   res.sendFile(path.join(publicDir, 'app.js'));
+});
+
+// Serve portal.html through auth-gated route (client portal)
+app.get('/portal.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(publicDir, 'portal.html'));
 });
 
 // Get CSRF token (for C4)
@@ -318,7 +324,15 @@ if (googleAuthEnabled) {
           else resolve();
         });
       });
-      res.redirect('/app.html');
+      // Redirect client-type users to portal, internal users to app
+      const isClientUser = user.type === 'client' || user.type === 'observer';
+      // Check if this user's email matches a client contact_email — if so, send to portal
+      const matchedClient = await db.getClientByContactEmail(user.email);
+      if (matchedClient && !['member', 'admin'].includes(user.type)) {
+        res.redirect('/portal.html');
+      } else {
+        res.redirect('/app.html');
+      }
     })(req, res, next);
   });
 } else {
@@ -660,6 +674,108 @@ app.delete('/api/activities', requireLogin, async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     safeError(res, 500, 'Failed to clear activities');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// ONBOARDING FORM ROUTES (public, token-based access)
+// ══════════════════════════════════════════════════════════════
+
+// Rate limit for form submissions
+const onboardingLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: 'Too many requests' });
+
+// Get client info + form state by token (public)
+app.get('/api/onboarding/:token', onboardingLimiter, async (req, res) => {
+  try {
+    const client = await db.getClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ message: 'Invalid or expired onboarding link' });
+    const submission = await db.getOnboardingSubmission(client.id);
+    res.json({
+      client: { id: client.id, company: client.company, contactName: client.contactName, contactEmail: client.contactEmail, googleDriveUrl: client.googleDriveUrl },
+      submission: submission ? { formData: submission.formData, status: submission.status, submittedAt: submission.submittedAt } : null
+    });
+  } catch (e) {
+    console.error('Get onboarding error:', e);
+    safeError(res, 500, 'Failed to load form');
+  }
+});
+
+// Save/submit onboarding form (public, token-based)
+app.post('/api/onboarding/:token', onboardingLimiter, async (req, res) => {
+  try {
+    const client = await db.getClientByToken(req.params.token);
+    if (!client) return res.status(404).json({ message: 'Invalid or expired onboarding link' });
+    const { formData, status } = req.body;
+    if (!formData || typeof formData !== 'object') return res.status(400).json({ message: 'Form data required' });
+    const validStatuses = ['in_progress', 'submitted'];
+    if (!validStatuses.includes(status)) return res.status(400).json({ message: 'Invalid status' });
+
+    const submission = await db.saveOnboardingSubmission(client.id, formData, status);
+
+    // If submitted, log activity and update relevant step
+    if (status === 'submitted') {
+      await db.createActivity({ clientId: client.id, userId: null, action: 'submitted onboarding form', details: client.company });
+    }
+
+    res.json({ success: true, submission });
+  } catch (e) {
+    console.error('Save onboarding error:', e);
+    safeError(res, 500, 'Failed to save form');
+  }
+});
+
+// Generate onboarding token for a client (internal, requires auth)
+app.post('/api/clients/:id/onboarding-token', requireLogin, async (req, res) => {
+  try {
+    const client = await db.getClient(req.params.id);
+    if (!client) return res.status(404).json({ message: 'Client not found' });
+    const token = await db.generateOnboardingToken(req.params.id);
+    await db.createActivity({ clientId: req.params.id, userId: req.session.userId, action: 'generated onboarding form link', details: client.company });
+    res.json({ token, url: `${req.protocol}://${req.get('host')}/onboarding.html?token=${token}` });
+  } catch (e) {
+    console.error('Generate token error:', e);
+    safeError(res, 500, 'Failed to generate link');
+  }
+});
+
+// Get onboarding submission for a client (internal)
+app.get('/api/clients/:id/onboarding', requireLogin, async (req, res) => {
+  try {
+    const submission = await db.getOnboardingSubmission(req.params.id);
+    res.json({ submission });
+  } catch (e) {
+    safeError(res, 500, 'Failed to fetch submission');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// CLIENT PORTAL ROUTES (requires auth, scoped to client's own data)
+// ══════════════════════════════════════════════════════════════
+
+// Get portal data for logged-in client
+app.get('/api/portal/me', requireLogin, async (req, res) => {
+  try {
+    const user = await db.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: 'User not found' });
+    // Find client record matching this user's email
+    const client = await db.getClientByContactEmail(user.email);
+    if (!client) return res.status(404).json({ message: 'No client record found for your email' });
+    const submission = await db.getOnboardingSubmission(client.id);
+    res.json({
+      user: { name: user.name, email: user.email },
+      client: {
+        id: client.id, company: client.company, type: client.type,
+        contactName: client.contactName, contactEmail: client.contactEmail,
+        status: client.status, onboardingStatus: client.onboardingStatus,
+        googleDriveUrl: client.googleDriveUrl, targetGoLive: client.targetGoLive,
+        onboardingToken: client.onboardingToken
+      },
+      steps: client.steps,
+      submission: submission ? { formData: submission.formData, status: submission.status, submittedAt: submission.submittedAt } : null
+    });
+  } catch (e) {
+    console.error('Portal error:', e);
+    safeError(res, 500, 'Failed to load portal');
   }
 });
 

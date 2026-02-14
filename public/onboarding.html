@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReBillion.ai — Client Onboarding</title>
+<style>
+:root { --dark: #1a3a2a; --primary: #4B876C; --primary-light: #e8f0ec; --accent: #D05F0D; --text: #1a2a2a; --muted: #607d8b; --bg: #f0f5f2; --card: #fff; --border: #d4e0d8; --red: #c62828; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); }
+.header { background: var(--dark); padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+.header svg { width: 36px; height: auto; }
+.header h1 { color: #fff; font-size: 18px; font-weight: 700; }
+.header h1 span { color: var(--accent); }
+.container { max-width: 680px; margin: 0 auto; padding: 32px 20px 60px; }
+.progress-bar { display: flex; gap: 6px; margin-bottom: 32px; }
+.progress-step { flex: 1; height: 6px; border-radius: 3px; background: var(--border); transition: background 0.3s; }
+.progress-step.active { background: var(--primary); }
+.progress-step.done { background: var(--primary); }
+.page-card { background: var(--card); border-radius: 16px; padding: 36px 32px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.page-title { font-size: 22px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+.page-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.form-group label .req { color: var(--accent); margin-left: 2px; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; color: var(--text); background: #fff; transition: border-color 0.2s; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(75,135,108,0.12); }
+.form-group textarea { resize: vertical; min-height: 80px; }
+.form-group .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.form-group.error input, .form-group.error select, .form-group.error textarea { border-color: var(--red); }
+.form-group .error-text { color: var(--red); font-size: 12px; margin-top: 4px; display: none; }
+.form-group.error .error-text { display: block; }
+.checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.checkbox-group label { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; user-select: none; }
+.checkbox-group label:hover { border-color: var(--primary); background: var(--primary-light); }
+.checkbox-group input:checked + span { color: var(--primary); font-weight: 600; }
+.checkbox-group label:has(input:checked) { border-color: var(--primary); background: var(--primary-light); }
+.checkbox-group input { display: none; }
+.radio-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.radio-group label { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; user-select: none; }
+.radio-group label:hover { border-color: var(--primary); background: var(--primary-light); }
+.radio-group label:has(input:checked) { border-color: var(--primary); background: var(--primary-light); }
+.radio-group input { display: none; }
+.urgency-scale { display: flex; gap: 8px; margin-top: 6px; }
+.urgency-scale label { flex: 1; text-align: center; padding: 12px 8px; border: 1.5px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; font-size: 15px; }
+.urgency-scale label:hover { border-color: var(--primary); }
+.urgency-scale label:has(input:checked) { border-color: var(--primary); background: var(--primary); color: #fff; }
+.urgency-scale input { display: none; }
+.urgency-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.btn-row { display: flex; justify-content: space-between; margin-top: 32px; gap: 12px; }
+.btn { padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #3d7259; transform: translateY(-1px); }
+.btn-outline { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
+.btn-outline:hover { border-color: var(--primary); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: #b85209; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.hidden { display: none !important; }
+.system-login-group { margin-top: 16px; padding: 16px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); }
+.system-login-group h4 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--primary); }
+.system-login-group .form-group { margin-bottom: 12px; }
+.system-login-group .form-group label { font-size: 13px; font-weight: 500; }
+.system-login-group .form-group input { padding: 8px 12px; font-size: 13px; }
+.drive-link-box { padding: 16px; background: #fff3e0; border: 1.5px solid #ffe0b2; border-radius: 10px; margin-bottom: 20px; }
+.drive-link-box a { color: var(--accent); font-weight: 600; word-break: break-all; }
+.drive-link-box p { font-size: 13px; color: #795548; margin-top: 6px; }
+.success-page { text-align: center; padding: 48px 24px; }
+.success-page .check { width: 72px; height: 72px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+.success-page .check svg { width: 36px; height: 36px; stroke: #fff; }
+.success-page h2 { font-size: 24px; color: var(--dark); margin-bottom: 12px; }
+.success-page p { font-size: 15px; color: var(--muted); max-width: 440px; margin: 0 auto; line-height: 1.5; }
+.loading-state { text-align: center; padding: 60px 20px; }
+.loading-state p { color: var(--muted); font-size: 15px; }
+.error-state { text-align: center; padding: 60px 20px; }
+.error-state h2 { color: var(--red); margin-bottom: 8px; }
+.error-state p { color: var(--muted); }
+@media (max-width: 600px) {
+  .container { padding: 16px 12px 40px; }
+  .page-card { padding: 24px 18px; }
+  .btn-row { flex-direction: column-reverse; }
+  .btn { width: 100%; text-align: center; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <svg width="121" height="159" viewBox="0 0 121 159" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path opacity="0.96" fill-rule="evenodd" clip-rule="evenodd" d="M10.5798 0.409803C10.8685 0.262573 11.1887 0.188891 11.5128 0.185749C31.6018 -0.00900137 51.6871 0.194235 71.7678 0.794282C71.8942 0.798061 72.0232 0.813357 72.1471 0.839098C104.626 7.5872 116.167 26.7851 106.77 58.4304C106.719 58.6005 106.646 58.7676 106.556 58.9203C104.291 62.7528 102.028 66.5844 99.763 70.4166C99.1969 71.3745 99.4435 72.6045 100.312 73.3001C119.98 89.0559 124.951 108.968 115.223 133.034C110.722 141.881 103.614 144.928 93.8953 142.174C87.985 140.123 84.7451 135.985 84.1766 129.76C84.1537 129.508 84.1801 129.253 84.2479 129.009C85.9118 123.03 87.4654 117.01 88.9099 110.951C88.9828 110.645 88.9894 110.325 88.9239 110.018C86.8403 100.227 80.8344 94.301 70.9064 92.2401C70.796 92.2172 70.6825 92.2033 70.5698 92.1982C57.9665 91.6283 45.3578 91.4173 32.7437 91.5665C31.5207 91.5809 30.5496 92.5964 30.5792 93.8192C31.0413 112.875 30.4317 131.826 28.7503 150.671C28.7128 151.091 28.5548 151.495 28.2869 151.821C22.7723 158.537 15.871 160.226 7.58206 156.888C7.43829 156.83 7.2996 156.755 7.1729 156.666C4.44855 154.747 2.34599 152.292 0.864235 149.299C0.7274 149.023 0.658446 148.718 0.65307 148.41C-0.148321 102.444 -0.148923 56.478 0.651262 10.512C0.657785 10.1373 0.758845 9.76936 0.953924 9.44935C3.39027 5.45274 6.59954 2.43924 10.5798 0.409803ZM30.5205 30.3805C30.5205 29.1827 31.4813 28.2059 32.6791 28.191C44.4318 28.0454 56.1782 28.252 67.9192 28.8127C68.1722 28.8248 68.4254 28.8819 68.6583 28.9814C80.7063 34.1273 84.0742 42.7376 78.7599 54.8111C78.6954 54.9576 78.613 55.0994 78.516 55.2268C76.2197 58.2416 73.2912 60.3868 69.7302 61.6633C69.5911 61.7131 69.4465 61.747 69.2999 61.7663C57.1471 63.3626 44.9242 63.9856 32.6323 63.6351C31.4533 63.6015 30.5205 62.632 30.5205 61.4524C30.5205 51.0949 30.5205 40.7381 30.5205 30.3805Z" fill="#4B876C"/>
+    <path d="M69.7638 143.683C69.7638 136.688 64.5179 130.276 56.3576 130.276C48.1973 130.276 42.9514 137.271 42.9514 143.683C42.9514 150.094 47.0316 157.089 56.3576 157.089C65.6837 157.089 69.7638 150.677 69.7638 143.683Z" fill="#D05F0D"/>
+  </svg>
+  <h1>Re<span>Billion</span>.ai</h1>
+</div>
+
+<div class="container">
+  <div id="loading" class="loading-state"><p>Loading form...</p></div>
+  <div id="error-state" class="error-state hidden"><h2>Link Not Found</h2><p>This onboarding link is invalid or has expired. Please contact your ReBillion representative.</p></div>
+  <div id="already-submitted" class="hidden"></div>
+
+  <div id="form-area" class="hidden">
+    <div class="progress-bar" id="progress-bar"></div>
+
+    <!-- PAGE 1: Contact Information -->
+    <div class="page-card page" id="page-1">
+      <h2 class="page-title">Contact Information</h2>
+      <p class="page-subtitle">8 fields &middot; ~2-3 minutes</p>
+
+      <div class="form-group"><label>Client / Company Name <span class="req">*</span></label><input id="f-company" type="text" required><div class="error-text">Required</div></div>
+      <div class="form-group"><label>Primary Contact Person <span class="req">*</span></label><input id="f-contact-name" type="text" required><div class="error-text">Required</div></div>
+      <div class="form-group"><label>Primary Contact Email <span class="req">*</span></label><input id="f-contact-email" type="email" required><div class="error-text">Valid email required</div></div>
+      <div class="form-group"><label>Primary Contact Phone <span class="req">*</span></label><input id="f-contact-phone" type="tel" required><div class="error-text">Required</div></div>
+      <div class="form-group">
+        <label>Which states do you serve? <span class="req">*</span></label>
+        <div class="checkbox-group" id="f-states">
+          <label><input type="checkbox" value="AZ"><span>AZ</span></label><label><input type="checkbox" value="CA"><span>CA</span></label>
+          <label><input type="checkbox" value="CO"><span>CO</span></label><label><input type="checkbox" value="FL"><span>FL</span></label>
+          <label><input type="checkbox" value="GA"><span>GA</span></label><label><input type="checkbox" value="IL"><span>IL</span></label>
+          <label><input type="checkbox" value="NC"><span>NC</span></label><label><input type="checkbox" value="NV"><span>NV</span></label>
+          <label><input type="checkbox" value="NY"><span>NY</span></label><label><input type="checkbox" value="OH"><span>OH</span></label>
+          <label><input type="checkbox" value="OR"><span>OR</span></label><label><input type="checkbox" value="PA"><span>PA</span></label>
+          <label><input type="checkbox" value="TX"><span>TX</span></label><label><input type="checkbox" value="WA"><span>WA</span></label>
+          <label><input type="checkbox" value="Other"><span>Other</span></label>
+        </div>
+        <div class="error-text">Select at least one</div>
+      </div>
+      <div class="form-group">
+        <label>What is your primary role in real estate? <span class="req">*</span></label>
+        <select id="f-role"><option value="">Select...</option><option>Broker / Owner</option><option>Transaction Coordinator</option><option>Office Manager</option><option>Team Lead</option><option>Agent</option><option>Title / Escrow Officer</option><option>Other</option></select>
+        <div class="error-text">Required</div>
+      </div>
+      <div class="form-group">
+        <label>How many transactions do you manage per month? <span class="req">*</span></label>
+        <select id="f-txns"><option value="">Select...</option><option>1-25</option><option>26-50</option><option>51-100</option><option>101-250</option><option>251-500</option><option>500+</option></select>
+        <div class="error-text">Required</div>
+      </div>
+      <div class="form-group">
+        <label>What type of transactions will the platform handle? <span class="req">*</span></label>
+        <div class="checkbox-group" id="f-txn-types">
+          <label><input type="checkbox" value="Residential Purchase"><span>Residential Purchase</span></label>
+          <label><input type="checkbox" value="Residential Listing"><span>Residential Listing</span></label>
+          <label><input type="checkbox" value="Commercial"><span>Commercial</span></label>
+          <label><input type="checkbox" value="Lease"><span>Lease</span></label>
+          <label><input type="checkbox" value="New Construction"><span>New Construction</span></label>
+          <label><input type="checkbox" value="Referral"><span>Referral</span></label>
+        </div>
+        <div class="error-text">Select at least one</div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: Current Systems & Templates -->
+    <div class="page-card page hidden" id="page-2">
+      <h2 class="page-title">Current Systems & Templates</h2>
+      <p class="page-subtitle">4 fields &middot; ~1-2 minutes</p>
+
+      <div class="form-group">
+        <label>Which existing systems do you currently use? <span class="req">*</span></label>
+        <div class="checkbox-group" id="f-systems">
+          <label><input type="checkbox" value="Follow Up Boss (FUB)"><span>Follow Up Boss (FUB)</span></label>
+          <label><input type="checkbox" value="SkySlope"><span>SkySlope</span></label>
+          <label><input type="checkbox" value="BrokerMint"><span>BrokerMint</span></label>
+          <label><input type="checkbox" value="Dotloop"><span>Dotloop</span></label>
+          <label><input type="checkbox" value="Open to Close (OTC)"><span>Open to Close (OTC)</span></label>
+          <label><input type="checkbox" value="Sisu"><span>Sisu</span></label>
+          <label><input type="checkbox" value="Google Drive"><span>Google Drive</span></label>
+          <label><input type="checkbox" value="Other"><span>Other</span></label>
+          <label><input type="checkbox" value="None"><span>None</span></label>
+        </div>
+        <div class="error-text">Select at least one</div>
+      </div>
+      <div class="form-group">
+        <label>Do you have existing email and task templates in another system? <span class="req">*</span></label>
+        <div class="radio-group" id="f-has-templates">
+          <label><input type="radio" name="hasTemplates" value="Yes"><span>Yes</span></label>
+          <label><input type="radio" name="hasTemplates" value="No"><span>No</span></label>
+        </div>
+        <div class="error-text">Required</div>
+      </div>
+      <div class="form-group hidden" id="f-template-system-group">
+        <label>Which system are your templates in?</label>
+        <select id="f-template-system"><option value="">Select...</option><option>Follow Up Boss</option><option>SkySlope</option><option>Dotloop</option><option>BrokerMint</option><option>Open to Close</option><option>Sisu</option><option>Google Drive</option><option>Other</option></select>
+      </div>
+      <div class="form-group hidden" id="f-template-action-group">
+        <label>Do you want us to import templates as-is or customize before installing?</label>
+        <div class="radio-group" id="f-template-action">
+          <label><input type="radio" name="templateAction" value="Import as-is"><span>Import as-is</span></label>
+          <label><input type="radio" name="templateAction" value="Customize first"><span>Customize before installing</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: System Logins & API Access -->
+    <div class="page-card page hidden" id="page-3">
+      <h2 class="page-title">System Logins & API Access</h2>
+      <p class="page-subtitle">Provide login details for the systems you selected</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:20px;padding:10px 14px;background:#fff3e0;border-radius:8px;border:1px solid #ffe0b2">Please provide login credentials securely. These will only be used by the ReBillion implementation team for setup.</p>
+      <div id="system-logins-container"></div>
+      <div class="system-login-group">
+        <h4>Other System (if applicable)</h4>
+        <div class="form-group"><label>System Name</label><input id="f-other-system-name" type="text"></div>
+        <div class="form-group"><label>Login URL</label><input id="f-other-login-url" type="url"></div>
+        <div class="form-group"><label>Username</label><input id="f-other-username" type="text"></div>
+        <div class="form-group"><label>Password</label><input id="f-other-password" type="password"></div>
+        <div class="form-group"><label>API Key</label><input id="f-other-api-key" type="text"></div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: Contracts & Compliance -->
+    <div class="page-card page hidden" id="page-4">
+      <h2 class="page-title">Contracts & Compliance</h2>
+      <p class="page-subtitle">Upload documents and describe compliance requirements</p>
+
+      <div id="drive-link-area" class="hidden">
+        <div class="drive-link-box">
+          <strong>Upload your documents here:</strong><br>
+          <a id="drive-link" href="#" target="_blank" rel="noopener"></a>
+          <p>Please upload at least 5 signed Residential Contracts and 5 signed Listing Contracts to this Google Drive folder.</p>
+        </div>
+      </div>
+      <div id="no-drive-link" class="drive-link-box" style="background:#fce4ec;border-color:#ef9a9a">
+        <strong>Document upload folder not set up yet</strong>
+        <p>Your ReBillion team will share a Google Drive folder link with you for uploading contracts. You can come back and complete this step later.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Have you uploaded your signed Residential Contracts? <span class="req">*</span></label>
+        <div class="radio-group" id="f-residential-uploaded">
+          <label><input type="radio" name="residentialUploaded" value="Yes, uploaded"><span>Yes, uploaded</span></label>
+          <label><input type="radio" name="residentialUploaded" value="Will upload later"><span>Will upload later</span></label>
+        </div>
+        <div class="error-text">Required</div>
+      </div>
+      <div class="form-group">
+        <label>Have you uploaded your signed Listing Contracts? <span class="req">*</span></label>
+        <div class="radio-group" id="f-listing-uploaded">
+          <label><input type="radio" name="listingUploaded" value="Yes, uploaded"><span>Yes, uploaded</span></label>
+          <label><input type="radio" name="listingUploaded" value="Will upload later"><span>Will upload later</span></label>
+        </div>
+        <div class="error-text">Required</div>
+      </div>
+      <div class="form-group">
+        <label>Describe any unique regulatory or regional compliance requirements <span class="req">*</span></label>
+        <textarea id="f-compliance" rows="4" placeholder="e.g., state-specific disclosure forms, HOA requirements, compliance checklists..."></textarea>
+        <div class="error-text">Required</div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: Project Urgency & Final Notes -->
+    <div class="page-card page hidden" id="page-5">
+      <h2 class="page-title">Project Urgency & Final Notes</h2>
+      <p class="page-subtitle">2 fields &middot; ~1 minute</p>
+
+      <div class="form-group">
+        <label>How urgent is launching this platform? <span class="req">*</span></label>
+        <div class="urgency-scale" id="f-urgency">
+          <label><input type="radio" name="urgency" value="1"><span>1</span></label>
+          <label><input type="radio" name="urgency" value="2"><span>2</span></label>
+          <label><input type="radio" name="urgency" value="3"><span>3</span></label>
+          <label><input type="radio" name="urgency" value="4"><span>4</span></label>
+          <label><input type="radio" name="urgency" value="5"><span>5</span></label>
+        </div>
+        <div class="urgency-labels"><span>Not urgent</span><span>Very urgent</span></div>
+        <div class="error-text">Required</div>
+      </div>
+      <div class="form-group">
+        <label>Anything else we should know before kickoff?</label>
+        <textarea id="f-notes" rows="4" placeholder="Additional notes, questions, or concerns..."></textarea>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="btn-row" id="nav-row">
+      <button class="btn btn-outline hidden" id="btn-back" onclick="goBack()">Back</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary" id="btn-next" onclick="goNext()">Next</button>
+      <button class="btn btn-accent hidden" id="btn-submit" onclick="submitForm()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL_PAGES = 5;
+let currentPage = 1;
+let token = null;
+let clientData = null;
+let savedData = {};
+
+// Init
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  token = params.get('token');
+  if (!token) { showError(); return; }
+
+  try {
+    const res = await fetch('/api/onboarding/' + token);
+    if (!res.ok) { showError(); return; }
+    const data = await res.json();
+    clientData = data.client;
+    if (data.submission && data.submission.status === 'submitted') {
+      showAlreadySubmitted(data.submission.submittedAt);
+      return;
+    }
+    if (data.submission && data.submission.formData) {
+      savedData = data.submission.formData;
+    }
+    initForm();
+  } catch(e) {
+    showError();
+  }
+})();
+
+function showError() {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('error-state').classList.remove('hidden');
+}
+
+function showAlreadySubmitted(date) {
+  document.getElementById('loading').classList.add('hidden');
+  const el = document.getElementById('already-submitted');
+  el.classList.remove('hidden');
+  el.innerHTML = '<div class="page-card success-page"><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div><h2>Form Already Submitted</h2><p>Thank you! Your onboarding information was submitted' + (date ? ' on ' + new Date(date).toLocaleDateString() : '') + '. Our team will be in touch shortly to schedule your kickoff call.</p></div>';
+}
+
+function initForm() {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('form-area').classList.remove('hidden');
+
+  // Pre-fill from client record
+  if (clientData) {
+    document.getElementById('f-company').value = clientData.company || '';
+    document.getElementById('f-contact-name').value = clientData.contactName || '';
+    document.getElementById('f-contact-email').value = clientData.contactEmail || '';
+    // Set up drive link
+    if (clientData.googleDriveUrl) {
+      document.getElementById('drive-link-area').classList.remove('hidden');
+      document.getElementById('no-drive-link').classList.add('hidden');
+      const a = document.getElementById('drive-link');
+      a.href = clientData.googleDriveUrl;
+      a.textContent = clientData.googleDriveUrl;
+    }
+  }
+
+  // Restore saved data
+  if (savedData && Object.keys(savedData).length) {
+    restoreFormData(savedData);
+  }
+
+  // Conditional logic for templates
+  document.querySelectorAll('#f-has-templates input').forEach(r => {
+    r.addEventListener('change', function() {
+      const show = this.value === 'Yes';
+      document.getElementById('f-template-system-group').classList.toggle('hidden', !show);
+      document.getElementById('f-template-action-group').classList.toggle('hidden', !show);
+    });
+  });
+
+  buildProgressBar();
+  showPage(1);
+}
+
+function buildProgressBar() {
+  const bar = document.getElementById('progress-bar');
+  bar.innerHTML = '';
+  for (let i = 1; i <= TOTAL_PAGES; i++) {
+    const step = document.createElement('div');
+    step.className = 'progress-step' + (i <= currentPage ? ' active' : '');
+    step.id = 'prog-' + i;
+    bar.appendChild(step);
+  }
+}
+
+function showPage(n) {
+  currentPage = n;
+  document.querySelectorAll('.page').forEach((p, i) => {
+    p.classList.toggle('hidden', i + 1 !== n);
+  });
+  document.getElementById('btn-back').classList.toggle('hidden', n === 1);
+  document.getElementById('btn-next').classList.toggle('hidden', n === TOTAL_PAGES);
+  document.getElementById('btn-submit').classList.toggle('hidden', n !== TOTAL_PAGES);
+  // Update progress
+  for (let i = 1; i <= TOTAL_PAGES; i++) {
+    const el = document.getElementById('prog-' + i);
+    if (el) { el.className = 'progress-step' + (i < n ? ' done' : i === n ? ' active' : ''); }
+  }
+  // Generate system login fields for page 3
+  if (n === 3) buildSystemLogins();
+  window.scrollTo(0, 0);
+}
+
+function buildSystemLogins() {
+  const container = document.getElementById('system-logins-container');
+  const systems = getCheckedValues('f-systems').filter(s => s !== 'None' && s !== 'Other' && s !== 'Google Drive');
+  container.innerHTML = '';
+  systems.forEach(sys => {
+    const key = sys.replace(/[^a-zA-Z]/g, '').toLowerCase();
+    const div = document.createElement('div');
+    div.className = 'system-login-group';
+    div.innerHTML = '<h4>' + esc(sys) + '</h4>' +
+      '<div class="form-group"><label>Login URL</label><input id="f-sys-' + key + '-url" type="url" data-sys="' + key + '" data-field="url"></div>' +
+      '<div class="form-group"><label>Username</label><input id="f-sys-' + key + '-user" type="text" data-sys="' + key + '" data-field="username"></div>' +
+      '<div class="form-group"><label>Password</label><input id="f-sys-' + key + '-pass" type="password" data-sys="' + key + '" data-field="password"></div>' +
+      '<div class="form-group"><label>API Key (if applicable)</label><input id="f-sys-' + key + '-api" type="text" data-sys="' + key + '" data-field="apiKey"></div>';
+    container.appendChild(div);
+  });
+  // Google Drive shared folder
+  if (getCheckedValues('f-systems').includes('Google Drive')) {
+    const div = document.createElement('div');
+    div.className = 'system-login-group';
+    div.innerHTML = '<h4>Google Drive</h4><div class="form-group"><label>Shared Folder Link</label><input id="f-sys-gdrive-link" type="url"></div>';
+    container.appendChild(div);
+  }
+  // Restore saved system logins
+  if (savedData.systemLogins) {
+    for (const [sysKey, fields] of Object.entries(savedData.systemLogins)) {
+      for (const [field, val] of Object.entries(fields)) {
+        const input = document.getElementById('f-sys-' + sysKey + '-' + (field === 'apiKey' ? 'api' : field === 'username' ? 'user' : field === 'password' ? 'pass' : field));
+        if (input) input.value = val;
+      }
+    }
+    if (savedData.systemLogins.gdrive) {
+      const el = document.getElementById('f-sys-gdrive-link');
+      if (el) el.value = savedData.systemLogins.gdrive.link || '';
+    }
+  }
+}
+
+function getCheckedValues(containerId) {
+  return Array.from(document.querySelectorAll('#' + containerId + ' input:checked')).map(cb => cb.value);
+}
+
+function getRadioValue(containerId) {
+  const el = document.querySelector('#' + containerId + ' input:checked');
+  return el ? el.value : '';
+}
+
+function validatePage(n) {
+  let valid = true;
+  function markError(el) { el.closest('.form-group').classList.add('error'); valid = false; }
+  function clearErrors() { document.querySelectorAll('#page-' + n + ' .form-group.error').forEach(g => g.classList.remove('error')); }
+  clearErrors();
+
+  if (n === 1) {
+    if (!val('f-company')) markError(document.getElementById('f-company'));
+    if (!val('f-contact-name')) markError(document.getElementById('f-contact-name'));
+    if (!val('f-contact-email') || !document.getElementById('f-contact-email').checkValidity()) markError(document.getElementById('f-contact-email'));
+    if (!val('f-contact-phone')) markError(document.getElementById('f-contact-phone'));
+    if (!getCheckedValues('f-states').length) markError(document.querySelector('#f-states'));
+    if (!val('f-role')) markError(document.getElementById('f-role'));
+    if (!val('f-txns')) markError(document.getElementById('f-txns'));
+    if (!getCheckedValues('f-txn-types').length) markError(document.querySelector('#f-txn-types'));
+  } else if (n === 2) {
+    if (!getCheckedValues('f-systems').length) markError(document.querySelector('#f-systems'));
+    if (!getRadioValue('f-has-templates')) markError(document.querySelector('#f-has-templates'));
+  } else if (n === 4) {
+    if (!getRadioValue('f-residential-uploaded')) markError(document.querySelector('#f-residential-uploaded'));
+    if (!getRadioValue('f-listing-uploaded')) markError(document.querySelector('#f-listing-uploaded'));
+    if (!val('f-compliance')) markError(document.getElementById('f-compliance'));
+  } else if (n === 5) {
+    if (!getRadioValue('f-urgency')) markError(document.querySelector('#f-urgency'));
+  }
+  return valid;
+}
+
+function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function collectFormData() {
+  const data = {
+    company: val('f-company'), contactName: val('f-contact-name'), contactEmail: val('f-contact-email'), contactPhone: val('f-contact-phone'),
+    states: getCheckedValues('f-states'), role: val('f-role'), txnsPerMonth: val('f-txns'), transactionTypes: getCheckedValues('f-txn-types'),
+    currentSystems: getCheckedValues('f-systems'), hasTemplates: getRadioValue('f-has-templates'),
+    templateSystem: val('f-template-system'), templateAction: getRadioValue('f-template-action'),
+    systemLogins: {},
+    otherSystem: { name: val('f-other-system-name'), url: val('f-other-login-url'), username: val('f-other-username'), password: val('f-other-password'), apiKey: val('f-other-api-key') },
+    residentialUploaded: getRadioValue('f-residential-uploaded'), listingUploaded: getRadioValue('f-listing-uploaded'),
+    compliance: val('f-compliance'),
+    urgency: getRadioValue('f-urgency'), notes: val('f-notes')
+  };
+  // Collect system logins
+  document.querySelectorAll('#system-logins-container input[data-sys]').forEach(input => {
+    const sys = input.getAttribute('data-sys');
+    const field = input.getAttribute('data-field');
+    if (!data.systemLogins[sys]) data.systemLogins[sys] = {};
+    data.systemLogins[sys][field] = input.value.trim();
+  });
+  const gdriveLink = document.getElementById('f-sys-gdrive-link');
+  if (gdriveLink && gdriveLink.value) { data.systemLogins.gdrive = { link: gdriveLink.value.trim() }; }
+  return data;
+}
+
+function restoreFormData(d) {
+  if (d.contactPhone) document.getElementById('f-contact-phone').value = d.contactPhone;
+  if (d.states) d.states.forEach(s => { const cb = document.querySelector('#f-states input[value="' + s + '"]'); if (cb) cb.checked = true; });
+  if (d.role) document.getElementById('f-role').value = d.role;
+  if (d.txnsPerMonth) document.getElementById('f-txns').value = d.txnsPerMonth;
+  if (d.transactionTypes) d.transactionTypes.forEach(t => { const cb = document.querySelector('#f-txn-types input[value="' + CSS.escape(t) + '"]'); if (cb) cb.checked = true; });
+  if (d.currentSystems) d.currentSystems.forEach(s => { const cb = document.querySelector('#f-systems input[value="' + CSS.escape(s) + '"]'); if (cb) cb.checked = true; });
+  if (d.hasTemplates) { const r = document.querySelector('#f-has-templates input[value="' + d.hasTemplates + '"]'); if (r) { r.checked = true; r.dispatchEvent(new Event('change')); } }
+  if (d.templateSystem) document.getElementById('f-template-system').value = d.templateSystem;
+  if (d.templateAction) { const r = document.querySelector('#f-template-action input[value="' + CSS.escape(d.templateAction) + '"]'); if (r) r.checked = true; }
+  if (d.otherSystem) { if (d.otherSystem.name) document.getElementById('f-other-system-name').value = d.otherSystem.name; if (d.otherSystem.url) document.getElementById('f-other-login-url').value = d.otherSystem.url; if (d.otherSystem.username) document.getElementById('f-other-username').value = d.otherSystem.username; if (d.otherSystem.apiKey) document.getElementById('f-other-api-key').value = d.otherSystem.apiKey; }
+  if (d.residentialUploaded) { const r = document.querySelector('#f-residential-uploaded input[value="' + CSS.escape(d.residentialUploaded) + '"]'); if (r) r.checked = true; }
+  if (d.listingUploaded) { const r = document.querySelector('#f-listing-uploaded input[value="' + CSS.escape(d.listingUploaded) + '"]'); if (r) r.checked = true; }
+  if (d.compliance) document.getElementById('f-compliance').value = d.compliance;
+  if (d.urgency) { const r = document.querySelector('#f-urgency input[value="' + d.urgency + '"]'); if (r) r.checked = true; }
+  if (d.notes) document.getElementById('f-notes').value = d.notes;
+}
+
+async function autoSave() {
+  const formData = collectFormData();
+  savedData = formData;
+  try {
+    await fetch('/api/onboarding/' + token, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ formData, status: 'in_progress' })
+    });
+  } catch(e) { /* silent */ }
+}
+
+function goNext() {
+  if (!validatePage(currentPage)) return;
+  autoSave();
+  showPage(currentPage + 1);
+}
+
+function goBack() {
+  autoSave();
+  showPage(currentPage - 1);
+}
+
+async function submitForm() {
+  if (!validatePage(currentPage)) return;
+  const formData = collectFormData();
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+
+  try {
+    const res = await fetch('/api/onboarding/' + token, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ formData, status: 'submitted' })
+    });
+    if (!res.ok) throw new Error('Submit failed');
+    // Show success
+    document.getElementById('form-area').innerHTML = '<div class="page-card success-page"><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div><h2>Thank You!</h2><p>We\'ve received your onboarding information and will be in touch within 1-2 business days to schedule your kickoff call.</p></div>';
+    document.getElementById('progress-bar').innerHTML = '';
+    document.getElementById('nav-row').innerHTML = '';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Submit';
+    alert('Failed to submit. Please try again.');
+  }
+}
+</script>
+</body>
+</html>

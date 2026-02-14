@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReBillion.ai — Client Portal</title>
+<style>
+:root { --dark: #1a3a2a; --primary: #4B876C; --primary-light: #e8f0ec; --accent: #D05F0D; --text: #1a2a2a; --muted: #607d8b; --bg: #f0f5f2; --card: #fff; --border: #d4e0d8; --red: #c62828; --amber: #f57f17; --green: #2e7d32; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); }
+.header { background: var(--dark); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header svg { width: 36px; height: auto; }
+.header h1 { color: #fff; font-size: 18px; font-weight: 700; }
+.header h1 span { color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.header-right .user-name { color: #c8d6c0; font-size: 13px; }
+.btn-logout { padding: 6px 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); color: #fff; background: none; font-size: 12px; cursor: pointer; font-family: inherit; }
+.btn-logout:hover { background: rgba(255,255,255,0.1); }
+.container { max-width: 860px; margin: 0 auto; padding: 32px 20px 60px; }
+.welcome-card { background: var(--primary); color: #fff; border-radius: 16px; padding: 28px 32px; margin-bottom: 24px; }
+.welcome-card h2 { font-size: 22px; margin-bottom: 6px; }
+.welcome-card p { font-size: 14px; opacity: 0.85; }
+.card { background: var(--card); border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); margin-bottom: 20px; }
+.card h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--dark); display: flex; align-items: center; justify-content: space-between; }
+.card h3 .badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+.badge-green { background: #e8f5e9; color: var(--green); }
+.badge-amber { background: #fff8e1; color: var(--amber); }
+.badge-orange { background: #fff3e0; color: var(--accent); }
+.badge-muted { background: var(--bg); color: var(--muted); }
+.overall-progress { margin-bottom: 24px; }
+.progress-track { width: 100%; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--primary); border-radius: 5px; transition: width 0.5s; }
+.progress-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.phase-section { margin-bottom: 20px; }
+.phase-header { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.phase-dot { width: 10px; height: 10px; border-radius: 50%; }
+.phase-header h4 { font-size: 15px; font-weight: 600; flex: 1; }
+.phase-header .phase-count { font-size: 12px; color: var(--muted); }
+.step-list { list-style: none; }
+.step-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; }
+.step-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; }
+.step-icon.completed { background: var(--green); color: #fff; }
+.step-icon.in_progress { background: var(--accent); color: #fff; }
+.step-icon.blocked { background: var(--red); color: #fff; }
+.step-icon.pending { background: var(--border); color: var(--muted); }
+.step-name { flex: 1; }
+.step-name.completed { color: var(--muted); text-decoration: line-through; }
+.step-status { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.onboarding-cta { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--primary-light); border-radius: 10px; border: 1.5px solid var(--primary); }
+.onboarding-cta .cta-text { flex: 1; }
+.onboarding-cta .cta-text h4 { font-size: 14px; margin-bottom: 2px; }
+.onboarding-cta .cta-text p { font-size: 12px; color: var(--muted); }
+.btn { padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; text-decoration: none; display: inline-block; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #3d7259; }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: #b85209; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info-item { padding: 12px; background: var(--bg); border-radius: 8px; }
+.info-item .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.info-item .value { font-size: 14px; font-weight: 600; }
+.loading { text-align: center; padding: 80px 20px; color: var(--muted); font-size: 15px; }
+.error-state { text-align: center; padding: 80px 20px; }
+.error-state h2 { color: var(--dark); margin-bottom: 8px; }
+.error-state p { color: var(--muted); margin-bottom: 20px; }
+@media (max-width: 600px) { .container { padding: 16px 12px 40px; } .card { padding: 18px 16px; } .info-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <svg width="121" height="159" viewBox="0 0 121 159" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path opacity="0.96" fill-rule="evenodd" clip-rule="evenodd" d="M10.5798 0.409803C10.8685 0.262573 11.1887 0.188891 11.5128 0.185749C31.6018 -0.00900137 51.6871 0.194235 71.7678 0.794282C71.8942 0.798061 72.0232 0.813357 72.1471 0.839098C104.626 7.5872 116.167 26.7851 106.77 58.4304C106.719 58.6005 106.646 58.7676 106.556 58.9203C104.291 62.7528 102.028 66.5844 99.763 70.4166C99.1969 71.3745 99.4435 72.6045 100.312 73.3001C119.98 89.0559 124.951 108.968 115.223 133.034C110.722 141.881 103.614 144.928 93.8953 142.174C87.985 140.123 84.7451 135.985 84.1766 129.76C84.1537 129.508 84.1801 129.253 84.2479 129.009C85.9118 123.03 87.4654 117.01 88.9099 110.951C88.9828 110.645 88.9894 110.325 88.9239 110.018C86.8403 100.227 80.8344 94.301 70.9064 92.2401C70.796 92.2172 70.6825 92.2033 70.5698 92.1982C57.9665 91.6283 45.3578 91.4173 32.7437 91.5665C31.5207 91.5809 30.5496 92.5964 30.5792 93.8192C31.0413 112.875 30.4317 131.826 28.7503 150.671C28.7128 151.091 28.5548 151.495 28.2869 151.821C22.7723 158.537 15.871 160.226 7.58206 156.888C7.43829 156.83 7.2996 156.755 7.1729 156.666C4.44855 154.747 2.34599 152.292 0.864235 149.299C0.7274 149.023 0.658446 148.718 0.65307 148.41C-0.148321 102.444 -0.148923 56.478 0.651262 10.512C0.657785 10.1373 0.758845 9.76936 0.953924 9.44935C3.39027 5.45274 6.59954 2.43924 10.5798 0.409803ZM30.5205 30.3805C30.5205 29.1827 31.4813 28.2059 32.6791 28.191C44.4318 28.0454 56.1782 28.252 67.9192 28.8127C68.1722 28.8248 68.4254 28.8819 68.6583 28.9814C80.7063 34.1273 84.0742 42.7376 78.7599 54.8111C78.6954 54.9576 78.613 55.0994 78.516 55.2268C76.2197 58.2416 73.2912 60.3868 69.7302 61.6633C69.5911 61.7131 69.4465 61.747 69.2999 61.7663C57.1471 63.3626 44.9242 63.9856 32.6323 63.6351C31.4533 63.6015 30.5205 62.632 30.5205 61.4524C30.5205 51.0949 30.5205 40.7381 30.5205 30.3805Z" fill="#4B876C"/>
+      <path d="M69.7638 143.683C69.7638 136.688 64.5179 130.276 56.3576 130.276C48.1973 130.276 42.9514 137.271 42.9514 143.683C42.9514 150.094 47.0316 157.089 56.3576 157.089C65.6837 157.089 69.7638 150.677 69.7638 143.683Z" fill="#D05F0D"/>
+    </svg>
+    <h1>Re<span>Billion</span>.ai</h1>
+  </div>
+  <div class="header-right">
+    <span class="user-name" id="user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="container">
+  <div id="loading" class="loading">Loading your portal...</div>
+  <div id="error-state" class="error-state" style="display:none">
+    <h2>No Client Record Found</h2>
+    <p>We couldn't find a client record matching your email address. Please contact your ReBillion representative for access.</p>
+    <a href="/login.html" class="btn btn-primary">Back to Login</a>
+  </div>
+  <div id="portal-content" style="display:none"></div>
+</div>
+
+<script>
+const PHASES = [
+  { id:'phase1', name:'Sales & Discovery', color:'#4B876C',
+    steps: [
+      { id:'p1s1', name:'Lead Qualification' }, { id:'p1s2', name:'Discovery Call' },
+      { id:'p1s3', name:'Follow-Up & Demo Scheduling' }, { id:'p1s4', name:'Tailored Product Demo' },
+      { id:'p1s5', name:'Proposal & Objection Handling' }, { id:'p1s6', name:'Contract Signed & Deal Closed' }
+    ], gate: { id:'g1', name:'GATE 1: Sales to Onboarding' }
+  },
+  { id:'phase2', name:'Data Collection & Gathering', color:'#00838f',
+    steps: [
+      { id:'p2s1', name:'Welcome Email & Info Packet' }, { id:'p2s2', name:'Onboarding Kick-Off Call' },
+      { id:'p2s3', name:'Technology Stack Inventory' }, { id:'p2s4', name:'API Credentials & Access' },
+      { id:'p2s5', name:'Workflow & Contract Docs' }, { id:'p2s6', name:'Agent Roster Collection' },
+      { id:'p2s7', name:'Data Migration Planning' }, { id:'p2s8', name:'Data Package Assembly' },
+      { id:'p2s9', name:'Pre-Config Internal Sync' }, { id:'p2s10', name:'Data Package Handoff' }
+    ], gate: { id:'g2', name:'GATE 2: Onboarding to Technical' }
+  },
+  { id:'phase3', name:'Config, Setup & Handover', color:'#2e7d32',
+    steps: [
+      { id:'p3s1', name:'Tenant Creation & Provisioning' }, { id:'p3s2', name:'Workflow & Field Configuration' },
+      { id:'p3s3', name:'Integration Setup' }, { id:'p3s4', name:'Internal Testing & QA' },
+      { id:'g3', name:'GATE 3: Config to UAT', isGate:true }, { id:'p3s5', name:'Client UAT' },
+      { id:'g4', name:'GATE 4: UAT to Training', isGate:true }, { id:'p3s6', name:'Training Sessions' },
+      { id:'g5', name:'GATE 5: Training to Go-Live', isGate:true }, { id:'p3s7', name:'GO-LIVE & Supported Launch' },
+      { id:'p3s8', name:'Agent Adoption Tracking' }, { id:'p3s9', name:'Post-Launch Support' },
+      { id:'p3s10', name:'ROI & Success Metrics Review' }
+    ], gate: { id:'g6', name:'GATE 6: Go-Live to Steady-State' }
+  }
+];
+
+function getAllSteps() {
+  const all = [];
+  PHASES.forEach(p => {
+    p.steps.forEach(s => all.push({ ...s, phase: p.id, phaseColor: p.color }));
+    if (p.gate) all.push({ ...p.gate, phase: p.id, phaseColor: p.color, isGate: true });
+  });
+  return all;
+}
+const ALL_STEPS = getAllSteps();
+
+let portalData = null;
+
+(async function() {
+  try {
+    const res = await fetch('/api/portal/me');
+    if (res.status === 401) { window.location.href = '/login.html'; return; }
+    if (res.status === 404) { showError(); return; }
+    if (!res.ok) { showError(); return; }
+    portalData = await res.json();
+    renderPortal();
+  } catch(e) {
+    showError();
+  }
+})();
+
+function showError() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error-state').style.display = 'block';
+}
+
+function renderPortal() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('user-name').textContent = portalData.user.name;
+  const content = document.getElementById('portal-content');
+  content.style.display = 'block';
+
+  const c = portalData.client;
+  const steps = portalData.steps || {};
+  const sub = portalData.submission;
+
+  // Calculate progress
+  const total = ALL_STEPS.length;
+  const completed = ALL_STEPS.filter(s => (steps[s.id] || {}).status === 'completed').length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  // Determine current phase
+  let currentPhase = 'phase1';
+  for (const s of ALL_STEPS) { if ((steps[s.id] || {}).status !== 'completed') { currentPhase = s.phase; break; } }
+
+  const statusBadge = c.status === 'completed' ? '<span class="badge badge-green">Completed</span>'
+    : c.status === 'at_risk' ? '<span class="badge badge-orange">At Risk</span>'
+    : '<span class="badge badge-green">Active</span>';
+
+  let html = '';
+
+  // Welcome card
+  html += '<div class="welcome-card"><h2>Welcome, ' + esc(c.contactName || portalData.user.name) + '</h2><p>' + esc(c.company) + ' &mdash; Onboarding Portal</p></div>';
+
+  // Overall progress card
+  html += '<div class="card"><h3>Overall Progress ' + statusBadge + '</h3>';
+  html += '<div class="overall-progress"><div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>';
+  html += '<div class="progress-label"><span>' + completed + ' of ' + total + ' steps complete</span><span>' + pct + '%</span></div></div>';
+
+  // Project info
+  html += '<div class="info-grid">';
+  if (c.targetGoLive) html += '<div class="info-item"><div class="label">Target Go-Live</div><div class="value">' + new Date(c.targetGoLive).toLocaleDateString() + '</div></div>';
+  html += '<div class="info-item"><div class="label">Onboarding Status</div><div class="value">' + esc((c.onboardingStatus || 'not started').replace(/_/g, ' ')) + '</div></div>';
+  html += '</div></div>';
+
+  // Onboarding form CTA
+  if (c.onboardingToken) {
+    const formUrl = '/onboarding.html?token=' + c.onboardingToken;
+    if (!sub || sub.status !== 'submitted') {
+      html += '<div class="card"><div class="onboarding-cta"><div class="cta-text"><h4>Complete Your Onboarding Form</h4><p>Please fill out the onboarding questionnaire so we can begin setting up your platform.</p></div><a href="' + formUrl + '" class="btn btn-accent">Fill Out Form</a></div></div>';
+    } else {
+      html += '<div class="card"><div class="onboarding-cta" style="border-color:var(--green);background:#e8f5e9"><div class="cta-text"><h4 style="color:var(--green)">Onboarding Form Submitted</h4><p>Submitted on ' + new Date(sub.submittedAt).toLocaleDateString() + '. Thank you!</p></div><a href="' + formUrl + '" class="btn btn-primary" style="font-size:12px">View Form</a></div></div>';
+    }
+  }
+
+  // Google Drive link
+  if (c.googleDriveUrl) {
+    html += '<div class="card"><h3>Shared Documents</h3><p style="font-size:13px;color:var(--muted);margin-bottom:12px">Upload your contracts and documents to the shared Google Drive folder:</p>';
+    html += '<a href="' + esc(c.googleDriveUrl) + '" target="_blank" rel="noopener" class="btn btn-primary" style="font-size:13px">Open Google Drive Folder</a></div>';
+  }
+
+  // Phase-by-phase progress
+  html += '<div class="card"><h3>Detailed Progress</h3>';
+  PHASES.forEach(phase => {
+    const phaseSteps = [...phase.steps];
+    if (phase.gate) phaseSteps.push(phase.gate);
+    const phaseCompleted = phaseSteps.filter(s => (steps[s.id] || {}).status === 'completed').length;
+
+    html += '<div class="phase-section"><div class="phase-header"><div class="phase-dot" style="background:' + phase.color + '"></div><h4>' + esc(phase.name) + '</h4><span class="phase-count">' + phaseCompleted + '/' + phaseSteps.length + '</span></div>';
+    html += '<ul class="step-list">';
+    phaseSteps.forEach(step => {
+      const st = (steps[step.id] || {}).status || 'pending';
+      const iconClass = st;
+      const icon = st === 'completed' ? '&#10003;' : st === 'in_progress' ? '&#9679;' : st === 'blocked' ? '!' : '&ndash;';
+      const nameClass = st === 'completed' ? ' completed' : '';
+      const statusColor = st === 'completed' ? 'var(--green)' : st === 'in_progress' ? 'var(--accent)' : st === 'blocked' ? 'var(--red)' : 'var(--muted)';
+      html += '<li class="step-item"><div class="step-icon ' + iconClass + '">' + icon + '</div><span class="step-name' + nameClass + '">' + esc(step.name) + '</span><span class="step-status" style="color:' + statusColor + '">' + st.replace('_', ' ') + '</span></li>';
+    });
+    html += '</ul></div>';
+  });
+  html += '</div>';
+
+  content.innerHTML = html;
+}
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+async function logout() {
+  try {
+    const csrfToken = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrfToken='));
+    const token = csrfToken ? csrfToken.split('=')[1] : '';
+    await fetch('/api/auth/logout', { method: 'POST', headers: { 'X-CSRF-Token': token } });
+  } catch(e) {}
+  window.location.href = '/login.html';
+}
+</script>
+</body>
+</html>
