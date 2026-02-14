@@ -429,7 +429,7 @@ function getFilteredClients() {
 // ══════════════════════════════════════════════════════════════
 function render() {
   const c = document.getElementById('view-content');
-  const titles = { dashboard:'Dashboard', pipeline:'Pipeline', clients:'All Clients', team:'Team Management', activity:'Activity Log', flow:'Flow Reference', detail:'Client Detail' };
+  const titles = { dashboard:'Dashboard', pipeline:'Pipeline', clients:'All Clients', team:'Team Management', activity:'Activity Log', flow:'Flow Reference', detail:'Client Detail', settings:'Settings' };
   document.getElementById('view-title').textContent = titles[state.currentView] || 'Dashboard';
   document.getElementById('client-count').textContent = state.clients.length;
   const searchEl = document.getElementById('global-search');
@@ -443,6 +443,7 @@ function render() {
       case 'activity': c.innerHTML = renderActivity(); break;
       case 'flow': c.innerHTML = renderFlow(); break;
       case 'detail': c.innerHTML = renderDetail(); break;
+      case 'settings': c.innerHTML = renderSettings(); break;
       default: c.innerHTML = renderDashboard();
     }
   } catch(e) {
@@ -1158,6 +1159,147 @@ async function importData(event) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ADMIN CHECK
+// ══════════════════════════════════════════════════════════════
+function isCurrentUserAdmin() {
+  if (!state.currentUser) return false;
+  if (state.currentUser.type === 'admin') return true;
+  const adminRoles = ['Implementation', 'Manager'];
+  return adminRoles.some(r => (state.currentUser.role || '').includes(r));
+}
+
+// ══════════════════════════════════════════════════════════════
+// SETTINGS VIEW (Admin Only)
+// ══════════════════════════════════════════════════════════════
+let settingsCache = null;
+
+async function loadSettings() {
+  try {
+    const data = await api.get('/api/settings');
+    settingsCache = data.settings || {};
+    return settingsCache;
+  } catch(e) {
+    showToast('Failed to load settings: ' + e.message, 'warn');
+    return {};
+  }
+}
+
+function renderSettings() {
+  if (!isCurrentUserAdmin()) {
+    return '<div class="empty-state"><h3>Access Denied</h3><p>Admin access required to view settings.</p></div>';
+  }
+
+  // Load settings asynchronously on first render
+  if (!settingsCache) {
+    loadSettings().then(() => {
+      if (state.currentView === 'settings') render();
+    });
+    return '<div class="empty-state"><p>Loading settings...</p></div>';
+  }
+
+  const s = settingsCache;
+
+  return `
+    <div style="max-width:640px;">
+      <div class="card" style="margin-bottom:24px;">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+          <h3 style="font-size:16px;font-weight:700;color:var(--dark);margin:0;">Email Notifications (SendGrid)</h3>
+          <p style="font-size:12px;color:var(--muted);margin:4px 0 0;">Configure email delivery for client action notifications</p>
+        </div>
+        <div style="padding:24px;">
+          <div style="margin-bottom:20px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">SendGrid API Key</label>
+            <input type="password" id="set-sendgrid-key" value="${esc(s.sendgrid_api_key || '')}" placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxx" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;">
+            <p style="font-size:11px;color:var(--light-muted);margin:4px 0 0;">Get your key at <a href="https://app.sendgrid.com/settings/api_keys" target="_blank" rel="noopener" style="color:var(--blue);">SendGrid Dashboard</a></p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">From Email</label>
+              <input type="email" id="set-from-email" value="${esc(s.email_from_address || '')}" placeholder="noreply@rebillion.ai" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">From Name</label>
+              <input type="text" id="set-from-name" value="${esc(s.email_from_name || '')}" placeholder="ReBillion.ai" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+            </div>
+          </div>
+          <div style="margin-bottom:24px;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="set-email-enabled" ${s.email_enabled === 'true' ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--blue);">
+              <span style="font-size:13px;font-weight:600;color:var(--text);">Enable email notifications</span>
+            </label>
+            <p style="font-size:11px;color:var(--light-muted);margin:4px 0 0 28px;">When enabled, clients will receive an email when action is requested on a step</p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="saveAllSettings()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              Save Settings
+            </button>
+            <button class="btn btn-outline" onclick="promptTestEmail()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+              Send Test Email
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="padding:16px 24px;">
+          <h4 style="font-size:13px;font-weight:600;color:var(--muted);margin:0 0 8px;">How it works</h4>
+          <ul style="font-size:12px;color:var(--muted);line-height:1.8;padding-left:18px;margin:0;">
+            <li>When you request a client action on any step, an email is automatically sent to the client's contact email</li>
+            <li>The email includes the step name, your note, and a link to their portal</li>
+            <li>Emails are sent via SendGrid — you'll need a verified sender domain or email</li>
+            <li>If email delivery fails, the action note is still saved (emails are non-blocking)</li>
+          </ul>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function saveAllSettings() {
+  try {
+    const apiKey = document.getElementById('set-sendgrid-key').value.trim();
+    const fromEmail = document.getElementById('set-from-email').value.trim();
+    const fromName = document.getElementById('set-from-name').value.trim();
+    const enabled = document.getElementById('set-email-enabled').checked ? 'true' : 'false';
+
+    const settings = [
+      { key: 'sendgrid_api_key', value: apiKey },
+      { key: 'email_from_address', value: fromEmail },
+      { key: 'email_from_name', value: fromName },
+      { key: 'email_enabled', value: enabled }
+    ];
+
+    for (const s of settings) {
+      await api.put('/api/settings', s);
+    }
+
+    settingsCache = null; // Clear cache to reload
+    await loadSettings();
+    render();
+    showToast('Settings saved successfully', 'success');
+  } catch(e) {
+    showToast('Failed to save settings: ' + e.message, 'warn');
+  }
+}
+
+async function promptTestEmail() {
+  const toEmail = prompt('Enter email address to send test to:');
+  if (!toEmail) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+    showToast('Invalid email address', 'warn');
+    return;
+  }
+  try {
+    showToast('Sending test email...', 'info');
+    const result = await api.post('/api/settings/test-email', { toEmail });
+    showToast(result.message || 'Test email sent!', 'success');
+  } catch(e) {
+    showToast('Test email failed: ' + e.message, 'warn');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // LOGOUT
 // ══════════════════════════════════════════════════════════════
 async function handleLogout() {
@@ -1195,6 +1337,13 @@ document.addEventListener('keydown', function(e) {
     document.getElementById('current-user-avatar').textContent = state.currentUser.name[0];
     document.getElementById('current-user-name').textContent = state.currentUser.name;
     document.getElementById('current-user-role').textContent = state.currentUser.role;
+  }
+  // Show admin nav items if user is admin
+  if (state.currentUser && isCurrentUserAdmin()) {
+    const navSettings = document.getElementById('nav-settings');
+    const navAdminSection = document.getElementById('nav-admin-section');
+    if (navSettings) navSettings.style.display = '';
+    if (navAdminSection) navAdminSection.style.display = '';
   }
   // Hide loading screen
   document.getElementById('loading-screen').style.display = 'none';

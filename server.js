@@ -15,6 +15,7 @@ const passport = require('passport');
 const XLSX = require('xlsx');
 const multer = require('multer');
 const db = require('./database');
+const email = require('./email');
 
 // Multer config for XLSX uploads (memory storage, 10MB limit)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -615,6 +616,18 @@ app.put('/api/clients/:clientId/steps/:stepId/client-action', requireLogin, asyn
       action: actionText,
       details: (note || '').substring(0, 80)
     });
+    // Fire-and-forget: send email notification to client if note is being set (not cleared)
+    if (note && client.contactEmail) {
+      const portalUrl = `${req.protocol}://${req.get('host')}/portal.html`;
+      email.sendClientActionEmail({
+        toEmail: client.contactEmail,
+        toName: client.contactName,
+        company: client.company,
+        stepName: stepName(req.params.stepId),
+        actionNote: note,
+        portalUrl
+      }).catch(err => console.error('Email notification failed:', err));
+    }
     res.json(result);
   } catch (e) {
     console.error('Set client action error:', e);
@@ -836,6 +849,84 @@ app.post('/api/portal/respond', requireLogin, async (req, res) => {
   } catch (e) {
     console.error('Portal respond error:', e);
     safeError(res, 500, 'Failed to save response');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// ADMIN SETTINGS ROUTES
+// ══════════════════════════════════════════════════════════════
+
+// Get all email settings (admin only, masks API key)
+app.get('/api/settings', requireAdmin, async (req, res) => {
+  try {
+    const settings = await db.getAllSettings();
+    // Mask the API key — only show last 4 characters
+    if (settings.sendgrid_api_key) {
+      const key = settings.sendgrid_api_key;
+      settings.sendgrid_api_key = key.length > 4
+        ? '••••••••••••' + key.slice(-4)
+        : '••••';
+    }
+    res.json({ settings });
+  } catch (e) {
+    console.error('Get settings error:', e);
+    safeError(res, 500, 'Failed to fetch settings');
+  }
+});
+
+// Update a setting (admin only)
+app.put('/api/settings', requireAdmin, async (req, res) => {
+  try {
+    const { key, value } = req.body;
+    if (!key || typeof key !== 'string') {
+      return res.status(400).json({ message: 'Setting key is required' });
+    }
+    // Only allow specific keys
+    const allowedKeys = ['sendgrid_api_key', 'email_from_address', 'email_from_name', 'email_enabled'];
+    if (!allowedKeys.includes(key)) {
+      return res.status(400).json({ message: 'Invalid setting key' });
+    }
+    // Validate values
+    if (key === 'email_from_address' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      return res.status(400).json({ message: 'Invalid email address format' });
+    }
+    if (key === 'email_enabled' && !['true', 'false'].includes(value)) {
+      return res.status(400).json({ message: 'email_enabled must be "true" or "false"' });
+    }
+    if (key === 'sendgrid_api_key' && value && value.startsWith('••••')) {
+      // User submitted the masked value — don't overwrite the real key
+      return res.json({ success: true, message: 'API key unchanged (masked value detected)' });
+    }
+    const result = await db.setSetting(key, value || '');
+    await db.createActivity({
+      clientId: null,
+      userId: req.session.userId,
+      action: `updated setting "${key}"`,
+      details: key === 'sendgrid_api_key' ? '(API key updated)' : (value || '').substring(0, 80)
+    });
+    res.json({ success: true, ...result });
+  } catch (e) {
+    console.error('Update setting error:', e);
+    safeError(res, 500, 'Failed to update setting');
+  }
+});
+
+// Send test email (admin only)
+app.post('/api/settings/test-email', requireAdmin, async (req, res) => {
+  try {
+    const { toEmail } = req.body;
+    if (!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+      return res.status(400).json({ message: 'Valid email address required' });
+    }
+    const result = await email.sendTestEmail(toEmail);
+    if (result.success) {
+      res.json({ success: true, message: `Test email sent to ${toEmail}` });
+    } else {
+      res.status(400).json({ success: false, message: result.error || 'Failed to send test email' });
+    }
+  } catch (e) {
+    console.error('Test email error:', e);
+    safeError(res, 500, 'Failed to send test email');
   }
 });
 

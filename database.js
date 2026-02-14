@@ -124,6 +124,15 @@ async function init() {
     )
   `);
 
+  // Admin settings table (key-value store for runtime config)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
   // Onboarding submissions table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS onboarding_submissions (
@@ -852,6 +861,34 @@ async function getClientByContactEmail(email) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ADMIN SETTINGS QUERIES
+// ══════════════════════════════════════════════════════════════
+async function getSetting(key) {
+  const result = await pool.query('SELECT value FROM admin_settings WHERE key = $1', [key]);
+  return result.rows.length > 0 ? result.rows[0].value : null;
+}
+
+async function setSetting(key, value) {
+  const ts = now();
+  await pool.query(
+    `INSERT INTO admin_settings (key, value, updated_at) VALUES ($1, $2, $3)
+     ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = $3`,
+    [key, value, ts]
+  );
+  return { key, value, updatedAt: ts };
+}
+
+async function getAllSettings() {
+  const allowedKeys = ['sendgrid_api_key', 'email_from_address', 'email_from_name', 'email_enabled'];
+  const result = await pool.query('SELECT key, value FROM admin_settings WHERE key = ANY($1)', [allowedKeys]);
+  const settings = {};
+  for (const row of result.rows) {
+    settings[row.key] = row.value;
+  }
+  return settings;
+}
+
+// ══════════════════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════════════════
 function rowToUser(row) {
@@ -926,5 +963,8 @@ module.exports = {
   generateOnboardingToken,
   getOnboardingSubmission,
   saveOnboardingSubmission,
-  getClientByContactEmail
+  getClientByContactEmail,
+  getSetting,
+  setSetting,
+  getAllSettings
 };
