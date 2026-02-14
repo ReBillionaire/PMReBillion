@@ -777,15 +777,24 @@ async function removeLink(clientId, stepId, linkId) {
 async function deleteClient(id) {
   if (!confirm('Delete this client? This cannot be undone.')) return;
   const c = state.clients.find(cl => cl.id===id);
+  const origClients = [...state.clients];
   state.clients = state.clients.filter(cl => cl.id!==id);
   if (state.detailClientId===id) goBack();
   else render();
-  showToast('Client deleted','info');
   try {
     if (state.isOffline) throw new Error('offline');
     await api.del(`/api/clients/${id}`);
+    showToast('Client deleted','info');
   } catch(e) {
-    await idbCache.queueAction({ type: 'delete_client', data: { id } });
+    if (state.isOffline || e.message === 'offline') {
+      await idbCache.queueAction({ type: 'delete_client', data: { id } });
+      showToast('Client deleted (offline)','warn');
+    } else {
+      // Revert optimistic update on server error
+      state.clients = origClients;
+      render();
+      showToast('Failed to delete: ' + e.message, 'warn');
+    }
   }
 }
 

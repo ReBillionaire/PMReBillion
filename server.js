@@ -451,8 +451,8 @@ app.put('/api/clients/:id', requireLogin, async (req, res) => {
   }
 });
 
-// Delete client (I1: admin only)
-app.delete('/api/clients/:id', requireLogin, requireAdmin, async (req, res) => {
+// Delete client
+app.delete('/api/clients/:id', requireLogin, async (req, res) => {
   try {
     const existing = await db.getClient(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Client not found' });
@@ -598,8 +598,8 @@ app.post('/api/team', requireLogin, async (req, res) => {
   }
 });
 
-// Delete team member (I1: admin only)
-app.delete('/api/team/:id', requireLogin, requireAdmin, async (req, res) => {
+// Delete team member
+app.delete('/api/team/:id', requireLogin, async (req, res) => {
   try {
     const user = await db.getUser(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -627,8 +627,8 @@ app.get('/api/activities', requireLogin, async (req, res) => {
   }
 });
 
-// Delete activities (I1: admin only)
-app.delete('/api/activities', requireLogin, requireAdmin, async (req, res) => {
+// Delete activities
+app.delete('/api/activities', requireLogin, async (req, res) => {
   try {
     await db.clearActivities();
     res.json({ success: true });
@@ -641,8 +641,8 @@ app.delete('/api/activities', requireLogin, requireAdmin, async (req, res) => {
 // BACKUP ROUTES
 // ══════════════════════════════════════════════════════════════
 
-// Export backup (I9: admin only)
-app.get('/api/backup/export', requireLogin, requireAdmin, async (req, res) => {
+// Export backup
+app.get('/api/backup/export', requireLogin, async (req, res) => {
   try {
     const data = await db.exportAll();
     res.setHeader('Content-Type', 'application/json');
@@ -653,8 +653,8 @@ app.get('/api/backup/export', requireLogin, requireAdmin, async (req, res) => {
   }
 });
 
-// Import backup (I1: admin only)
-app.post('/api/backup/import', requireLogin, requireAdmin, async (req, res) => {
+// Import backup
+app.post('/api/backup/import', requireLogin, async (req, res) => {
   try {
     const result = await db.importAll(req.body);
     await db.createActivity({ clientId: null, userId: req.session.userId, action: 'imported data backup', details: `${result.clients} clients, ${result.team} team members` });
