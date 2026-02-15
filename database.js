@@ -410,6 +410,9 @@ async function isAdmin(userId) {
   if (!user) return false;
   if (user.type === 'admin') return true;
 
+  // Domain-based admin: @garvik.ai users are always admins
+  if (user.email && user.email.toLowerCase().endsWith('@garvik.ai')) return true;
+
   const adminRoles = ['Implementation', 'Manager'];
   return adminRoles.some(r => user.role.includes(r));
 }

@@ -1289,6 +1289,8 @@ async function importData(event) {
 function isCurrentUserAdmin() {
   if (!state.currentUser) return false;
   if (state.currentUser.type === 'admin') return true;
+  // Domain-based admin: @garvik.ai users are always admins
+  if (state.currentUser.email && state.currentUser.email.toLowerCase().endsWith('@garvik.ai')) return true;
   const adminRoles = ['Implementation', 'Manager'];
   return adminRoles.some(r => (state.currentUser.role || '').includes(r));
 }
