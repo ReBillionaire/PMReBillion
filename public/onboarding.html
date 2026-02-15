@@ -539,10 +539,8 @@ async function submitForm() {
       body: JSON.stringify({ formData, status: 'submitted' })
     });
     if (!res.ok) throw new Error('Submit failed');
-    // Show success
+    // Show success — replace entire form area (progress-bar and nav-row are children, so they're included)
     document.getElementById('form-area').innerHTML = '<div class="page-card success-page"><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div><h2>Thank You!</h2><p>We\'ve received your onboarding information and will be in touch within 1-2 business days to schedule your kickoff call.</p></div>';
-    document.getElementById('progress-bar').innerHTML = '';
-    document.getElementById('nav-row').innerHTML = '';
   } catch(e) {
     btn.disabled = false; btn.textContent = 'Submit';
     alert('Failed to submit. Please try again.');

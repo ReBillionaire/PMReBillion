@@ -442,6 +442,35 @@ body.offline .main { margin-top: 30px; }
   </div>
 </div>
 
+<!-- Onboarding Submission View Modal -->
+<div class="modal-overlay" id="modal-submission">
+  <div class="modal" style="max-width: 640px;" role="dialog" aria-labelledby="modal-submission-title">
+    <div class="modal-header"><h3 id="modal-submission-title">Onboarding Form Submission</h3><button class="modal-close" onclick="closeModal('modal-submission')" aria-label="Close">&times;</button></div>
+    <div class="modal-body" id="modal-submission-body" style="max-height:65vh;overflow-y:auto">
+      <p style="color:var(--muted)">Loading...</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-submission')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Email Form Link Modal -->
+<div class="modal-overlay" id="modal-email-link">
+  <div class="modal" style="max-width: 480px;" role="dialog" aria-labelledby="modal-email-link-title">
+    <div class="modal-header"><h3 id="modal-email-link-title">Send Form Link to Client</h3><button class="modal-close" onclick="closeModal('modal-email-link')" aria-label="Close">&times;</button></div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Send the onboarding form link directly to the client's email address.</p>
+      <div class="form-group"><label>Client Email</label><input id="fel-email" type="email" readonly style="background:#f5f5f5"></div>
+      <div class="form-group"><label>Form Link</label><input id="fel-link" type="text" readonly style="background:#f5f5f5;font-size:11px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-email-link')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendFormLinkEmail()">Send Email</button>
+    </div>
+  </div>
+</div>
+
 <!-- Link Attachment Modal -->
 <div class="modal-overlay" id="modal-link">
   <div class="modal" style="max-width: 480px;" role="dialog" aria-labelledby="modal-link-title">

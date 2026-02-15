@@ -652,12 +652,13 @@ function renderDetail() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
           ${c.onboardingToken ? 'Copy Form Link' : 'Get Form Link'}
         </button>
+        ${c.onboardingToken && c.contactEmail ? '<button class="btn btn-sm btn-outline" onclick="openEmailLinkModal(\''+esc(c.id)+'\')" title="Email form link to client"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg> Email Link</button>' : ''}
         ${c.googleDriveUrl ? '<a href="'+esc(c.googleDriveUrl)+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none" title="Open Google Drive folder"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> Drive</a>' : ''}
         <button class="btn btn-sm btn-outline" onclick="openEditClientModal('${esc(c.id)}')">Edit</button>
         <select class="btn btn-outline" style="font-size:12px;cursor:pointer" onchange="updateClientStatus('${esc(c.id)}',this.value)">${statusOpts}</select>
       </div>
     </div>
-    ${c.onboardingStatus === 'submitted' ? '<div style="margin:12px 0;padding:10px 16px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;font-size:13px;color:#2e7d32;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Onboarding form submitted</div>' : c.onboardingStatus === 'in_progress' ? '<div style="margin:12px 0;padding:10px 16px;background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;font-size:13px;color:#e65100;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Onboarding form in progress</div>' : ''}
+    ${c.onboardingStatus === 'submitted' ? '<div style="margin:12px 0;padding:10px 16px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;font-size:13px;color:#2e7d32;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Onboarding form submitted <button class="btn btn-sm btn-outline" onclick="viewSubmission(\''+esc(c.id)+'\')" style="margin-left:auto;font-size:11px;padding:3px 10px">View Submission</button></div>' : c.onboardingStatus === 'in_progress' ? '<div style="margin:12px 0;padding:10px 16px;background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;font-size:13px;color:#e65100;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Onboarding form in progress <button class="btn btn-sm btn-outline" onclick="viewSubmission(\''+esc(c.id)+'\')" style="margin-left:auto;font-size:11px;padding:3px 10px">View Submission</button></div>' : ''}
     <div class="detail-progress mb-lg"><div class="detail-progress-bar-wrap"><div class="detail-progress-bar" style="width:${prog.pct}%"></div></div><div class="detail-progress-text"><span>${prog.done} of ${prog.total} steps completed</span><span>${prog.pct}%</span></div></div>
     ${PHASES.map(p => buildPhaseBlock(p)).join('')}
     ${c.notes?'<div class="card" style="margin-top:20px"><div class="card-header"><h3>Client Notes</h3></div><div class="card-body"><p class="text-sm">'+esc(c.notes)+'</p></div></div>':''}`;
@@ -874,6 +875,130 @@ async function deleteClient(id) {
       render();
       showToast('Failed to delete: ' + e.message, 'warn');
     }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// VIEW ONBOARDING SUBMISSION
+// ══════════════════════════════════════════════════════════════
+async function viewSubmission(clientId) {
+  const body = document.getElementById('modal-submission-body');
+  body.innerHTML = '<p style="color:var(--muted)">Loading submission data...</p>';
+  openModal('modal-submission');
+  try {
+    const data = await api.get(`/api/clients/${clientId}/onboarding`);
+    if (!data.submission) {
+      body.innerHTML = '<p style="color:var(--muted)">No submission found for this client.</p>';
+      return;
+    }
+    const f = data.submission.formData || {};
+    const submitted = data.submission.submittedAt;
+    const status = data.submission.status;
+
+    function field(label, value) {
+      if (!value || (Array.isArray(value) && !value.length)) return '';
+      const display = Array.isArray(value) ? value.join(', ') : value;
+      return '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:2px">'+esc(label)+'</div><div style="font-size:13px;color:var(--text)">'+esc(display)+'</div></div>';
+    }
+
+    function section(title) {
+      return '<div style="font-size:14px;font-weight:700;color:var(--dark);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">'+esc(title)+'</div>';
+    }
+
+    let html = '<div style="padding:4px 0">';
+    html += '<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap"><span style="font-size:12px;padding:4px 10px;background:'+(status==='submitted'?'#e8f5e9;color:#2e7d32':'#fff3e0;color:#e65100')+';border-radius:6px;font-weight:600">'+(status==='submitted'?'Submitted':'In Progress')+'</span>';
+    if (submitted) html += '<span style="font-size:12px;color:var(--muted)">'+fmtDateTime(submitted)+'</span>';
+    html += '</div>';
+
+    html += section('Contact Information');
+    html += field('Company', f.company);
+    html += field('Contact Name', f.contactName);
+    html += field('Contact Email', f.contactEmail);
+    html += field('Contact Phone', f.contactPhone);
+    html += field('States Served', f.states);
+    html += field('Role', f.role);
+    html += field('Transactions/Month', f.txnsPerMonth);
+    html += field('Transaction Types', f.transactionTypes);
+
+    html += section('Current Systems & Templates');
+    html += field('Current Systems', f.currentSystems);
+    html += field('Has Existing Templates', f.hasTemplates);
+    if (f.hasTemplates === 'Yes') {
+      html += field('Template System', f.templateSystem);
+      html += field('Template Action', f.templateAction);
+    }
+
+    if (f.systemLogins && Object.keys(f.systemLogins).length) {
+      html += section('System Logins');
+      for (const [sys, fields] of Object.entries(f.systemLogins)) {
+        html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px">';
+        html += '<div style="font-size:12px;font-weight:600;color:var(--dark);margin-bottom:6px">'+esc(sys)+'</div>';
+        for (const [k, v] of Object.entries(fields)) {
+          if (v) html += '<div style="font-size:11px;margin-bottom:2px"><span style="color:var(--muted)">'+esc(k)+': </span><span style="font-family:monospace">'+esc(v)+'</span></div>';
+        }
+        html += '</div>';
+      }
+    }
+    if (f.otherSystem && f.otherSystem.name) {
+      html += field('Other System', f.otherSystem.name);
+    }
+
+    html += section('Contracts & Compliance');
+    html += field('Residential Contracts Uploaded', f.residentialUploaded);
+    html += field('Listing Contracts Uploaded', f.listingUploaded);
+    html += field('Compliance Requirements', f.compliance);
+
+    html += section('Project Urgency & Notes');
+    html += field('Urgency Level', f.urgency ? f.urgency + ' / 5' : '');
+    html += field('Additional Notes', f.notes);
+
+    html += '</div>';
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = '<p style="color:var(--red)">Failed to load submission: '+esc(e.message)+'</p>';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// EMAIL FORM LINK TO CLIENT
+// ══════════════════════════════════════════════════════════════
+let emailLinkClientId = null;
+
+async function openEmailLinkModal(clientId) {
+  const c = state.clients.find(cl => cl.id===clientId);
+  if (!c) return;
+  emailLinkClientId = clientId;
+
+  // Ensure token exists
+  if (!c.onboardingToken) {
+    try {
+      const result = await api.post(`/api/clients/${clientId}/onboarding-token`, {});
+      c.onboardingToken = result.token;
+    } catch(e) {
+      showToast('Failed to generate form link: '+e.message,'warn');
+      return;
+    }
+  }
+
+  const url = window.location.origin + '/onboarding.html?token=' + c.onboardingToken;
+  document.getElementById('fel-email').value = c.contactEmail || '';
+  document.getElementById('fel-link').value = url;
+  openModal('modal-email-link');
+}
+
+async function sendFormLinkEmail() {
+  const c = state.clients.find(cl => cl.id===emailLinkClientId);
+  if (!c) return;
+  const toEmail = document.getElementById('fel-email').value;
+  const formUrl = document.getElementById('fel-link').value;
+  if (!toEmail) { showToast('No email address available','warn'); return; }
+
+  try {
+    await api.post(`/api/clients/${c.id}/email-form-link`, { toEmail, formUrl });
+    closeModal('modal-email-link');
+    showToast('Form link emailed to ' + toEmail, 'success');
+  } catch(e) {
+    showToast('Failed to send email: ' + e.message, 'warn');
   }
 }
 

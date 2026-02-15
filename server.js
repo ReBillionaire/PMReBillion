@@ -752,9 +752,17 @@ app.post('/api/onboarding/:token', onboardingLimiter, async (req, res) => {
 
     const submission = await db.saveOnboardingSubmission(client.id, formData, status);
 
-    // If submitted, log activity and update relevant step
+    // If submitted, log activity and send notification email
     if (status === 'submitted') {
       await db.createActivity({ clientId: client.id, userId: 'client', action: 'submitted onboarding form', details: client.company });
+      // Fire-and-forget: email admin about form submission
+      const appUrl = `${req.protocol}://${req.get('host')}/app.html`;
+      email.sendFormSubmissionNotification({
+        company: client.company,
+        contactName: client.contactName,
+        contactEmail: client.contactEmail,
+        appUrl
+      }).catch(err => console.error('Form submission notification failed:', err));
     }
 
     res.json({ success: true, submission });
@@ -785,6 +793,39 @@ app.get('/api/clients/:id/onboarding', requireLogin, async (req, res) => {
     res.json({ submission });
   } catch (e) {
     safeError(res, 500, 'Failed to fetch submission');
+  }
+});
+
+// Email form link to client
+app.post('/api/clients/:id/email-form-link', requireLogin, async (req, res) => {
+  try {
+    const client = await db.getClient(req.params.id);
+    if (!client) return res.status(404).json({ message: 'Client not found' });
+    const { toEmail, formUrl } = req.body;
+    if (!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+      return res.status(400).json({ message: 'Valid email required' });
+    }
+    if (!formUrl) return res.status(400).json({ message: 'Form URL required' });
+    const result = await email.sendFormLinkEmail({
+      toEmail,
+      toName: client.contactName,
+      company: client.company,
+      formUrl
+    });
+    if (result.success) {
+      await db.createActivity({
+        clientId: client.id,
+        userId: req.session.userId,
+        action: `emailed onboarding form link to ${toEmail}`,
+        details: client.company
+      });
+      res.json({ success: true, message: `Form link sent to ${toEmail}` });
+    } else {
+      res.status(400).json({ success: false, message: result.error || 'Failed to send email' });
+    }
+  } catch (e) {
+    console.error('Email form link error:', e);
+    safeError(res, 500, 'Failed to send form link');
   }
 });
 
