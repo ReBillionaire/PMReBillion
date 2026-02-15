@@ -1367,6 +1367,42 @@ function renderSettings() {
         </div>
       </div>
 
+      <div class="card" style="margin-bottom:24px;">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+          <h3 style="font-size:16px;font-weight:700;color:var(--dark);margin:0;">Google Drive Integration</h3>
+          <p style="font-size:12px;color:var(--muted);margin:4px 0 0;">Auto-create a Drive folder for each new client</p>
+        </div>
+        <div style="padding:24px;">
+          <div style="margin-bottom:20px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Root Folder URL or ID</label>
+            <input type="text" id="set-drive-folder" value="${esc(s.google_drive_root_folder_id || '')}" placeholder="https://drive.google.com/drive/folders/xxxxx or folder ID" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+            <p style="font-size:11px;color:var(--light-muted);margin:4px 0 0;">Paste the Google Drive folder URL where client subfolders will be created</p>
+          </div>
+          <div style="margin-bottom:20px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Service Account JSON Key</label>
+            <textarea id="set-drive-sa" rows="4" placeholder='Paste the full JSON key from Google Cloud Console...' style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:11px;font-family:monospace;resize:vertical;">${esc(s.google_drive_service_account || '')}</textarea>
+            <p style="font-size:11px;color:var(--light-muted);margin:4px 0 0;">Create a Service Account in <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener" style="color:var(--blue);">Google Cloud Console</a>, enable Drive API, download JSON key, and share the root folder with the service account email</p>
+          </div>
+          <div style="margin-bottom:24px;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="set-drive-enabled" ${s.google_drive_enabled === 'true' ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--blue);">
+              <span style="font-size:13px;font-weight:600;color:var(--text);">Enable auto-folder creation</span>
+            </label>
+            <p style="font-size:11px;color:var(--light-muted);margin:4px 0 0 28px;">When enabled, a new Google Drive folder is automatically created for each new client</p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="saveAllSettings()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              Save Settings
+            </button>
+            <button class="btn btn-outline" onclick="testDriveConnection()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              Test Connection
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div style="padding:16px 24px;">
           <h4 style="font-size:13px;font-weight:600;color:var(--muted);margin:0 0 8px;">How it works</h4>
@@ -1374,7 +1410,8 @@ function renderSettings() {
             <li>When you request a client action on any step, an email is automatically sent to the client's contact email</li>
             <li>The email includes the step name, your note, and a link to their portal</li>
             <li>Emails are sent via SendGrid — you'll need a verified sender domain or email</li>
-            <li>If email delivery fails, the action note is still saved (emails are non-blocking)</li>
+            <li>When Google Drive is configured, a folder is auto-created for every new client</li>
+            <li>The onboarding form will automatically show the Drive folder link for document uploads</li>
           </ul>
         </div>
       </div>
@@ -1387,12 +1424,18 @@ async function saveAllSettings() {
     const fromEmail = document.getElementById('set-from-email').value.trim();
     const fromName = document.getElementById('set-from-name').value.trim();
     const enabled = document.getElementById('set-email-enabled').checked ? 'true' : 'false';
+    const driveFolder = document.getElementById('set-drive-folder').value.trim();
+    const driveSA = document.getElementById('set-drive-sa').value.trim();
+    const driveEnabled = document.getElementById('set-drive-enabled').checked ? 'true' : 'false';
 
     const settings = [
       { key: 'sendgrid_api_key', value: apiKey },
       { key: 'email_from_address', value: fromEmail },
       { key: 'email_from_name', value: fromName },
-      { key: 'email_enabled', value: enabled }
+      { key: 'email_enabled', value: enabled },
+      { key: 'google_drive_root_folder_id', value: driveFolder },
+      { key: 'google_drive_service_account', value: driveSA },
+      { key: 'google_drive_enabled', value: driveEnabled }
     ];
 
     for (const s of settings) {
@@ -1421,6 +1464,16 @@ async function promptTestEmail() {
     showToast(result.message || 'Test email sent!', 'success');
   } catch(e) {
     showToast('Test email failed: ' + e.message, 'warn');
+  }
+}
+
+async function testDriveConnection() {
+  try {
+    showToast('Testing Drive connection...', 'info');
+    const result = await api.post('/api/settings/test-drive', {});
+    showToast(result.message || 'Drive connected!', 'success');
+  } catch(e) {
+    showToast('Drive test failed: ' + e.message, 'warn');
   }
 }
 

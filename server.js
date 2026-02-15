@@ -16,6 +16,7 @@ const XLSX = require('xlsx');
 const multer = require('multer');
 const db = require('./database');
 const email = require('./email');
+const drive = require('./drive');
 
 // Multer config for XLSX uploads (memory storage, 10MB limit)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -442,6 +443,19 @@ app.post('/api/clients', requireLogin, async (req, res) => {
     }
     const client = await db.createClient(req.body);
     await db.createActivity({ clientId: client.id, userId: req.session.userId, action: 'created new client', details: company });
+    // Auto-create Google Drive folder for this client (non-blocking on failure)
+    if (!client.googleDriveUrl) {
+      try {
+        const driveResult = await drive.createClientFolder(company);
+        if (driveResult.success && driveResult.folderUrl) {
+          await db.updateClient(client.id, { googleDriveUrl: driveResult.folderUrl });
+          client.googleDriveUrl = driveResult.folderUrl;
+        }
+      } catch (driveErr) {
+        console.error('Auto Drive folder creation failed:', driveErr);
+        // Don't fail client creation if Drive fails
+      }
+    }
     res.json(client);
   } catch (e) {
     console.error('Create client error:', e);
@@ -901,12 +915,21 @@ app.post('/api/portal/respond', requireLogin, async (req, res) => {
 app.get('/api/settings', requireAdmin, async (req, res) => {
   try {
     const settings = await db.getAllSettings();
-    // Mask the API key — only show last 4 characters
+    // Mask sensitive values — only show last 4 characters
     if (settings.sendgrid_api_key) {
       const key = settings.sendgrid_api_key;
       settings.sendgrid_api_key = key.length > 4
         ? '••••••••••••' + key.slice(-4)
         : '••••';
+    }
+    if (settings.google_drive_service_account) {
+      // Show just the client_email from the service account JSON
+      try {
+        const sa = JSON.parse(settings.google_drive_service_account);
+        settings.google_drive_service_account = '••••configured•••• (' + (sa.client_email || 'unknown') + ')';
+      } catch(e) {
+        settings.google_drive_service_account = '••••configured••••';
+      }
     }
     res.json({ settings });
   } catch (e) {
@@ -923,7 +946,7 @@ app.put('/api/settings', requireAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Setting key is required' });
     }
     // Only allow specific keys
-    const allowedKeys = ['sendgrid_api_key', 'email_from_address', 'email_from_name', 'email_enabled'];
+    const allowedKeys = ['sendgrid_api_key', 'email_from_address', 'email_from_name', 'email_enabled', 'google_drive_root_folder_id', 'google_drive_service_account', 'google_drive_enabled'];
     if (!allowedKeys.includes(key)) {
       return res.status(400).json({ message: 'Invalid setting key' });
     }
@@ -937,6 +960,9 @@ app.put('/api/settings', requireAdmin, async (req, res) => {
     if (key === 'sendgrid_api_key' && value && value.startsWith('••••')) {
       // User submitted the masked value — don't overwrite the real key
       return res.json({ success: true, message: 'API key unchanged (masked value detected)' });
+    }
+    if (key === 'google_drive_service_account' && value && value.startsWith('••••')) {
+      return res.json({ success: true, message: 'Service account unchanged (masked value detected)' });
     }
     const result = await db.setSetting(key, value || '');
     await db.createActivity({
@@ -968,6 +994,21 @@ app.post('/api/settings/test-email', requireAdmin, async (req, res) => {
   } catch (e) {
     console.error('Test email error:', e);
     safeError(res, 500, 'Failed to send test email');
+  }
+});
+
+// Test Google Drive connection (admin only)
+app.post('/api/settings/test-drive', requireAdmin, async (req, res) => {
+  try {
+    const result = await drive.testDriveConnection();
+    if (result.success) {
+      res.json({ success: true, message: `Connected! Root folder: "${result.folderName}"` });
+    } else {
+      res.status(400).json({ success: false, message: result.error || 'Drive connection failed' });
+    }
+  } catch (e) {
+    console.error('Test drive error:', e);
+    safeError(res, 500, 'Failed to test Drive connection');
   }
 });
 

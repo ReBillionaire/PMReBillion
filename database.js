@@ -879,7 +879,7 @@ async function setSetting(key, value) {
 }
 
 async function getAllSettings() {
-  const allowedKeys = ['sendgrid_api_key', 'email_from_address', 'email_from_name', 'email_enabled'];
+  const allowedKeys = ['sendgrid_api_key', 'email_from_address', 'email_from_name', 'email_enabled', 'google_drive_root_folder_id', 'google_drive_service_account', 'google_drive_enabled'];
   const result = await pool.query('SELECT key, value FROM admin_settings WHERE key = ANY($1)', [allowedKeys]);
   const settings = {};
   for (const row of result.rows) {
