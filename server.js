@@ -764,12 +764,20 @@ app.post('/api/onboarding/:token', onboardingLimiter, async (req, res) => {
     const validStatuses = ['in_progress', 'submitted'];
     if (!validStatuses.includes(status)) return res.status(400).json({ message: 'Invalid status' });
 
+    // Guard: prevent re-submitting an already-submitted form
+    if (status === 'submitted') {
+      const existing = await db.getOnboardingSubmission(client.id);
+      if (existing && existing.status === 'submitted') {
+        return res.json({ success: true, submission: existing, message: 'Form was already submitted' });
+      }
+    }
+
     const submission = await db.saveOnboardingSubmission(client.id, formData, status);
 
     // If submitted, log activity and send notification email
     if (status === 'submitted') {
       await db.createActivity({ clientId: client.id, userId: 'client', action: 'submitted onboarding form', details: client.company });
-      // Fire-and-forget: email admin about form submission
+      // Fire-and-forget: email admin about form submission (dedup handled inside email service)
       const appUrl = `${req.protocol}://${req.get('host')}/app.html`;
       email.sendFormSubmissionNotification({
         company: client.company,
@@ -816,7 +824,7 @@ app.post('/api/clients/:id/email-form-link', requireLogin, async (req, res) => {
     const client = await db.getClient(req.params.id);
     if (!client) return res.status(404).json({ message: 'Client not found' });
     const { toEmail, formUrl } = req.body;
-    if (!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+    if (!toEmail || !email.isValidEmail(toEmail)) {
       return res.status(400).json({ message: 'Valid email required' });
     }
     if (!formUrl) return res.status(400).json({ message: 'Form URL required' });
@@ -982,7 +990,7 @@ app.put('/api/settings', requireAdmin, async (req, res) => {
 app.post('/api/settings/test-email', requireAdmin, async (req, res) => {
   try {
     const { toEmail } = req.body;
-    if (!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+    if (!toEmail || !email.isValidEmail(toEmail)) {
       return res.status(400).json({ message: 'Valid email address required' });
     }
     const result = await email.sendTestEmail(toEmail);

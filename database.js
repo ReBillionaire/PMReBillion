@@ -133,6 +133,17 @@ async function init() {
     )
   `);
 
+  // Email log table (for deduplication and audit trail)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_log (
+      id TEXT PRIMARY KEY,
+      email_type TEXT NOT NULL,
+      recipient TEXT NOT NULL,
+      context_key TEXT NOT NULL,
+      sent_at TEXT NOT NULL
+    )
+  `);
+
   // Onboarding submissions table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS onboarding_submissions (
@@ -931,6 +942,37 @@ function normalizeClient(row) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// EMAIL DEDUPLICATION LOG
+// ══════════════════════════════════════════════════════════════
+
+// Check if a similar email was sent recently (within cooldownMinutes)
+async function wasEmailSentRecently(emailType, recipient, contextKey, cooldownMinutes = 10) {
+  const pool = getPool();
+  const cutoff = new Date(Date.now() - cooldownMinutes * 60 * 1000).toISOString();
+  const result = await pool.query(
+    `SELECT id FROM email_log WHERE email_type = $1 AND LOWER(recipient) = LOWER($2) AND context_key = $3 AND sent_at > $4 LIMIT 1`,
+    [emailType, recipient, contextKey, cutoff]
+  );
+  return result.rows.length > 0;
+}
+
+// Log a sent email for dedup tracking
+async function logEmail(emailType, recipient, contextKey) {
+  const pool = getPool();
+  await pool.query(
+    `INSERT INTO email_log (id, email_type, recipient, context_key, sent_at) VALUES ($1, $2, $3, $4, $5)`,
+    [uid(), emailType, recipient.toLowerCase(), contextKey, now()]
+  );
+}
+
+// Cleanup old email log entries (older than 24h) — call periodically
+async function cleanupEmailLog() {
+  const pool = getPool();
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  await pool.query('DELETE FROM email_log WHERE sent_at < $1', [cutoff]);
+}
+
+// ══════════════════════════════════════════════════════════════
 // EXPORTS
 // ══════════════════════════════════════════════════════════════
 module.exports = {
@@ -969,5 +1011,8 @@ module.exports = {
   getClientByContactEmail,
   getSetting,
   setSetting,
-  getAllSettings
+  getAllSettings,
+  wasEmailSentRecently,
+  logEmail,
+  cleanupEmailLog
 };
